@@ -1,0 +1,106 @@
+{
+  "id": "africa-2027",
+  "title": "Africa + Mauritius Grand Tour",
+  "subtitle": "~4 weeks · August 2027 · a couple · upper-mid comfort",
+  "when": "August 2027",
+  "travellers": "Craig + 1",
+  "budget": "~AUD $15,000–25,000 per person",
+  "center": [-14, 40],
+  "zoom": 4,
+  "stops": [
+    {
+      "id": "brisbane",
+      "name": "Brisbane",
+      "type": "gateway",
+      "lat": -27.4698,
+      "lng": 153.0251,
+      "nights": "Depart",
+      "highlights": "Your starting point. Qantas flies Brisbane–Johannesburg with one connection in Sydney (the Sydney–Joburg leg is the ~14h nonstop)."
+    },
+    {
+      "id": "johannesburg",
+      "name": "Johannesburg",
+      "type": "gateway",
+      "lat": -26.2041,
+      "lng": 28.0473,
+      "nights": "Gateway",
+      "highlights": "African gateway. Overnight if needed, then a short light-aircraft hop up to the Greater Kruger for your first safari."
+    },
+    {
+      "id": "sabi",
+      "name": "Sabi Sands · Greater Kruger",
+      "type": "safari",
+      "lat": -24.79,
+      "lng": 31.5,
+      "nights": "4 nights",
+      "highlights": "The full Big 5 — arguably the best leopard and rhino viewing on the continent, with superb guiding at great upper-mid value."
+    },
+    {
+      "id": "vicfalls",
+      "name": "Victoria Falls (Zimbabwe)",
+      "type": "safari",
+      "lat": -17.9243,
+      "lng": 25.8572,
+      "nights": "3 nights",
+      "highlights": "The Falls at their best-viewed low-water season, Devil's Pool open, helicopter flights, and an optional Chobe elephant day-trip."
+    },
+    {
+      "id": "mara",
+      "name": "Masai Mara (via Nairobi)",
+      "type": "safari",
+      "lat": -1.4061,
+      "lng": 35.0083,
+      "nights": "4 nights",
+      "highlights": "The grand finale on land: the Great Migration and its dramatic Mara River crossings, at their August peak."
+    },
+    {
+      "id": "mauritius",
+      "name": "Mauritius",
+      "type": "beach",
+      "lat": -20.348,
+      "lng": 57.552,
+      "nights": "7 nights",
+      "highlights": "Wind down on the sheltered north/west coast — sunny winter days, calm warm sea, and peak humpback whale season."
+    },
+    {
+      "id": "home",
+      "name": "Home to Brisbane",
+      "type": "gateway",
+      "lat": -27.4698,
+      "lng": 153.0251,
+      "nights": "Return",
+      "highlights": "Fly Mauritius → Johannesburg, then Qantas back to Brisbane via Sydney — closing the loop through your African gateway."
+    }
+  ],
+  "legs": [
+    { "from": "brisbane", "to": "johannesburg", "kind": "fly", "label": "Qantas via SYD · ~18h" },
+    { "from": "johannesburg", "to": "sabi", "kind": "transfer", "label": "light aircraft · ~1h" },
+    { "from": "sabi", "to": "vicfalls", "kind": "fly", "label": "via JNB · ~1h45m flight" },
+    { "from": "vicfalls", "to": "mara", "kind": "fly", "label": "1 stop · ~½ day" },
+    { "from": "mara", "to": "mauritius", "kind": "fly", "label": "via Nairobi · ~4h" },
+    { "from": "mauritius", "to": "johannesburg", "kind": "fly", "label": "Fly to JNB, then Qantas home via SYD" },
+    { "from": "johannesburg", "to": "home", "kind": "fly", "label": "Qantas via SYD · ~18h" }
+  ],
+  "parks": [
+    {
+      "name": "Kruger National Park (approx.)",
+      "coords": [
+        [-22.4, 30.92], [-22.42, 31.3], [-23.05, 31.56], [-23.65, 31.78],
+        [-24.3, 31.96], [-25.05, 32.02], [-25.5, 31.95], [-25.52, 31.55],
+        [-25.0, 31.45], [-24.4, 31.34], [-23.8, 31.18], [-23.2, 31.04], [-22.8, 30.95]
+      ]
+    },
+    {
+      "name": "Sabi Sand (private · unfenced) (approx.)",
+      "coords": [
+        [-24.66, 31.28], [-24.66, 31.55], [-25.05, 31.55], [-25.05, 31.34], [-24.88, 31.27]
+      ]
+    },
+    {
+      "name": "Masai Mara National Reserve (approx.)",
+      "coords": [
+        [-1.16, 34.8], [-1.16, 35.26], [-1.48, 35.28], [-1.66, 35.08], [-1.58, 34.84], [-1.3, 34.77]
+      ]
+    }
+  ]
+}

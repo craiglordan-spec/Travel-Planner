@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip · GR Travel Planner</title>
+<link rel="stylesheet" href="/vendor/leaflet.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script src="/vendor/leaflet.js"></script>
+<style>
+  #editModal{position:fixed;inset:0;background:rgba(30,22,14,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:24px}
+  #editModal .box{background:#fff;border-radius:14px;width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+  #editModal .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  #editModal textarea{flex:1;min-height:52vh;border:none;padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;resize:none;outline:none}
+  #editModal .ft{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  #editModal .err{color:#b23b1e;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><a href="/" style="color:inherit">Gravel Road <span>· Travel Planner</span></a></div>
+  <div class="actions">
+    <button class="btn ghost sm" id="present">Present link</button>
+    <button class="btn ghost sm" id="edit">Edit</button>
+    <a class="btn ghost sm" href="/">All trips</a>
+  </div>
+</div>
+
+<div id="app">
+  <aside id="panel">
+    <header></header>
+    <div id="controls">
+      <button class="btn" id="play">▶  Play route</button>
+      <button class="btn ghost" id="fit">Fit all</button>
+    </div>
+    <div id="list"></div>
+  </aside>
+  <div id="map">
+    <div class="legend">
+      <div class="row"><span class="dash"></span> Flight leg</div>
+      <div class="row"><span class="solid"></span> Safari transfer</div>
+      <div class="row"><span class="dot" style="background:#5a7d4f"></span> Safari</div>
+      <div class="row"><span class="dot" style="background:#7b4b74"></span> Beach</div>
+      <div class="row"><span class="dot" style="background:#3d7ea6"></span> Gateway</div>
+      <div class="row"><span style="width:16px;height:11px;border:1.5px dashed #d9a521;background:rgba(123,182,97,.28);border-radius:2px"></span> Park (approx.)</div>
+    </div>
+  </div>
+</div>
+
+<div id="editModal">
+  <div class="box">
+    <div class="hd"><strong>Edit trip (JSON)</strong><button class="btn ghost sm" id="closeEdit">Close</button></div>
+    <textarea id="editText" spellcheck="false"></textarea>
+    <div class="ft"><span class="err" id="editErr"></span><button class="btn" id="saveEdit">Save changes</button></div>
+  </div>
+</div>
+
+<script src="/js/map.js"></script>
+<script src="/js/trip.js"></script>
+</body>
+</html>

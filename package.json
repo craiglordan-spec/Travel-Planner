@@ -1,0 +1,20 @@
+{
+  "name": "gr-travel-planner",
+  "version": "0.1.0",
+  "description": "Gravel Road — travel planning & presentation tool. Map-driven, multi-trip itineraries with a client-facing present mode.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "leaflet": "^1.9.4"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Itinerary · Gravel Road</title>
+<link rel="stylesheet" href="/vendor/leaflet.css" />
+<link rel="stylesheet" href="/css/styles.css" />
+<script src="/vendor/leaflet.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">Gravel Road <span>· Itinerary</span></div>
+  <div class="actions"></div>
+</div>
+
+<div id="app">
+  <aside id="panel">
+    <header></header>
+    <div id="controls">
+      <button class="btn" id="play">▶  Play route</button>
+      <button class="btn ghost" id="fit">Fit all</button>
+    </div>
+    <div id="list"></div>
+  </aside>
+  <div id="map">
+    <div class="legend">
+      <div class="row"><span class="dash"></span> Flight leg</div>
+      <div class="row"><span class="solid"></span> Safari transfer</div>
+      <div class="row"><span class="dot" style="background:#5a7d4f"></span> Safari</div>
+      <div class="row"><span class="dot" style="background:#7b4b74"></span> Beach</div>
+      <div class="row"><span class="dot" style="background:#3d7ea6"></span> Gateway</div>
+      <div class="row"><span style="width:16px;height:11px;border:1.5px dashed #d9a521;background:rgba(123,182,97,.28);border-radius:2px"></span> Park (approx.)</div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/map.js"></script>
+<script src="/js/present.js"></script>
+</body>
+</html>
