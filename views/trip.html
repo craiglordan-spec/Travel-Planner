@@ -13,13 +13,14 @@
   <div class="brand"><a href="/" style="color:inherit">Gravel Road <span>· Travel Planner</span></a></div>
   <div class="actions">
     <button class="btn ghost sm" id="present">Present link</button>
-    <button class="btn ghost sm" id="editJson">Edit stops (JSON)</button>
+    <button class="btn ghost sm" id="editJson">Advanced (JSON)</button>
     <a class="btn ghost sm" href="/">All trips</a>
   </div>
 </div>
 
 <nav class="subnav">
   <button data-tab="map" class="active">🗺 Map</button>
+  <button data-tab="route">📍 Route</button>
   <button data-tab="calendar">📅 Calendar</button>
   <button data-tab="flights">✈ Flights</button>
   <button data-tab="accommodation">🏨 Accommodation</button>
@@ -47,6 +48,16 @@
         <div class="row"><span style="width:16px;height:11px;border:1.5px dashed #d9a521;background:rgba(123,182,97,.28);border-radius:2px"></span> Park (approx.)</div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ROUTE (stops + legs) -->
+<section id="tab-route" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Stops</h2><div class="sub">Places on the route, in order. Use ↑ ↓ to reorder; each needs latitude &amp; longitude to appear on the map.</div></div><button class="btn" data-add="stops">+ Add stop</button></div>
+    <div id="stops" class="items"></div>
+    <div class="tabhead" style="margin-top:28px"><div><h2>Route legs</h2><div class="sub">Connections drawn between stops — flights as dashed arcs, transfers as solid lines.</div></div><button class="btn" data-add="legs">+ Add leg</button></div>
+    <div id="legs" class="items"></div>
   </div>
 </section>
 

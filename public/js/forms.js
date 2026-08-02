@@ -92,6 +92,48 @@ window.GRForms = (function () {
         };
       },
     },
+    stops: {
+      icon: "📍",
+      singular: "Stop",
+      order: ["name","type","lat","lng","nights","highlights"],
+      fields: {
+        name: { label: "Place name", type: "text" },
+        type: { label: "Type (pin colour)", type: "select", options: ["gateway","safari","beach","city"] },
+        lat: { label: "Latitude", type: "number" },
+        lng: { label: "Longitude", type: "number" },
+        nights: { label: "Nights / label", type: "text" },
+        highlights: { label: "Highlights", type: "textarea" },
+      },
+      rows: [["name"],["type"],["lat","lng"],["nights"],["highlights"]],
+      card(it) {
+        return {
+          title: esc(it.name || "Stop"),
+          d: [it.type, it.nights].filter(Boolean).join(" · "),
+          meta: it.highlights,
+          tags: [Number.isFinite(it.lat) && Number.isFinite(it.lng) ? `${it.lat}, ${it.lng}` : "⚠ no coordinates"].filter(Boolean),
+        };
+      },
+    },
+    legs: {
+      icon: "↝",
+      singular: "Leg",
+      order: ["from","to","kind","label"],
+      fields: {
+        from: { label: "From (stop)", type: "stop" },
+        to: { label: "To (stop)", type: "stop" },
+        kind: { label: "Type", type: "select", options: ["fly","transfer"] },
+        label: { label: "Label (e.g. 'Qantas · ~18h')", type: "text" },
+      },
+      rows: [["from","to"],["kind"],["label"]],
+      card(it, trip) {
+        return {
+          title: `${esc(stopName(trip, it.from) || "?")} → ${esc(stopName(trip, it.to) || "?")}`,
+          d: it.kind === "transfer" ? "Transfer (solid line)" : "Flight (dashed arc)",
+          meta: it.label,
+          tags: [],
+        };
+      },
+    },
   };
 
   function stopName(trip, id) {
@@ -108,11 +150,15 @@ window.GRForms = (function () {
       return;
     }
     el.innerHTML = "";
-    items.forEach((it) => {
-      const c = spec.card(it);
+    items.forEach((it, idx) => {
+      const c = spec.card(it, trip);
       const linked = it.stopId ? stopName(trip, it.stopId) : "";
       const div = document.createElement("div");
       div.className = "item";
+      const reorder = opts.reorder
+        ? `<button class="btn ghost sm" data-up ${idx === 0 ? "disabled" : ""}>↑</button>` +
+          `<button class="btn ghost sm" data-down ${idx === items.length - 1 ? "disabled" : ""}>↓</button>`
+        : "";
       div.innerHTML =
         `<div class="ic">${spec.icon}</div>` +
         `<div class="main">` +
@@ -123,12 +169,32 @@ window.GRForms = (function () {
         (c.tags || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("") +
         (linked ? `<span class="chip linkstop" data-stop="${esc(it.stopId)}">📍 ${esc(linked)}</span>` : "") +
         `</div></div>` +
-        `<div class="rowbtns"><button class="btn ghost sm" data-edit="${esc(it.id)}">Edit</button></div>`;
+        `<div class="rowbtns">${reorder}<button class="btn ghost sm" data-edit="${esc(it.id)}">Edit</button></div>`;
       div.querySelector("[data-edit]").addEventListener("click", () => openEditor(key, trip, it.id, opts));
       const ls = div.querySelector(".linkstop");
       if (ls) ls.addEventListener("click", () => opts.onFocusStop && opts.onFocusStop(it.stopId));
+      if (opts.reorder) {
+        const up = div.querySelector("[data-up]");
+        const down = div.querySelector("[data-down]");
+        if (up) up.addEventListener("click", () => { if (idx > 0) { swap(items, idx, idx - 1); opts.onChange(trip); } });
+        if (down) down.addEventListener("click", () => { if (idx < items.length - 1) { swap(items, idx, idx + 1); opts.onChange(trip); } });
+      }
       el.appendChild(div);
     });
+  }
+
+  function swap(arr, i, j) {
+    const t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+  }
+
+  function slugId(name, items) {
+    let base = String(name || "stop").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "stop";
+    let id = base, n = 2;
+    const taken = new Set((items || []).map((x) => x.id));
+    while (taken.has(id)) id = base + "-" + n++;
+    return id;
   }
 
   function fieldHtml(trip, key, name, val) {
@@ -150,7 +216,8 @@ window.GRForms = (function () {
           .join("") +
         `</select>`;
     } else {
-      input = `<input data-f="${name}" type="${f.type}" value="${esc(v)}" />`;
+      const extra = f.type === "number" ? ' step="any"' : "";
+      input = `<input data-f="${name}" type="${f.type}" value="${esc(v)}"${extra} />`;
     }
     return `<div class="field"><label>${esc(f.label)}</label>${input}</div>`;
   }
@@ -192,7 +259,10 @@ window.GRForms = (function () {
       if (existing) {
         Object.assign(existing, vals);
       } else {
-        vals.id = key.slice(0, 2) + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+        vals.id =
+          key === "stops"
+            ? slugId(vals.name, items)
+            : key.slice(0, 2) + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
         items.push(vals);
       }
       modal.classList.remove("open");

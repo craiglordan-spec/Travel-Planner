@@ -3,6 +3,7 @@
   const id = decodeURIComponent(location.pathname.split("/").pop());
   let trip = null;
   let mapApi = null;
+  let mapDirty = false; // route changed while map tab hidden → rebuild on next view
 
   try {
     const res = await fetch("/api/trips/" + id);
@@ -21,32 +22,63 @@
 
   mapApi = GRMap.mount(trip, { mode: "edit" });
 
-  const opts = {
-    onChange: saveTrip,
-    onFocusStop: focusStop,
-  };
+  const opts = { onChange: saveTrip, onFocusStop: focusStop };
+  const stopsOpts = { onChange: saveAndRemount, onFocusStop: focusStop, reorder: true };
+  const legsOpts = { onChange: saveAndRemount, onFocusStop: focusStop };
 
   function renderAll() {
     GRCalendar.render(trip, opts);
     GRForms.renderList("flights", trip, opts);
     GRForms.renderList("accommodation", trip, opts);
     GRForms.renderList("activities", trip, opts);
+    GRForms.renderList("stops", trip, stopsOpts);
+    GRForms.renderList("legs", trip, legsOpts);
   }
   renderAll();
+
+  async function persist() {
+    const res = await fetch("/api/trips/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(trip),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+  }
 
   async function saveTrip(updated) {
     trip = updated;
     try {
-      const res = await fetch("/api/trips/" + id, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trip),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+      await persist();
       renderAll();
     } catch (e) {
       alert("Could not save: " + e.message);
     }
+  }
+
+  // used after stop/leg changes: mark the map for rebuild when its tab is shown
+  // (rebuilding while the map container is hidden gives Leaflet a zero-size
+  // container and throws "Invalid LatLng" errors)
+  async function saveAndRemount(updated) {
+    trip = updated;
+    try {
+      await persist();
+      mapDirty = true;
+      const mapVisible = document.getElementById("tab-map").classList.contains("active");
+      if (mapVisible) {
+        remountMap();
+        mapDirty = false;
+      }
+      renderAll();
+    } catch (e) {
+      alert("Could not save: " + e.message);
+    }
+  }
+
+  function remountMap() {
+    try {
+      if (mapApi && mapApi.map) mapApi.map.remove();
+    } catch (e) {}
+    mapApi = GRMap.mount(trip, { mode: "edit" });
   }
 
   function focusStop(stopId) {
@@ -63,7 +95,14 @@
       .forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
     document.querySelectorAll(".tabview").forEach((v) => v.classList.remove("active"));
     document.getElementById("tab-" + name).classList.add("active");
-    if (name === "map" && mapApi) setTimeout(() => mapApi.map.invalidateSize(), 60);
+    if (name === "map") {
+      if (mapDirty) {
+        remountMap();
+        mapDirty = false;
+      } else if (mapApi) {
+        setTimeout(() => mapApi.map.invalidateSize(), 60);
+      }
+    }
   }
   document
     .querySelectorAll(".subnav button")
@@ -71,7 +110,11 @@
 
   // ---- add buttons ----
   document.querySelectorAll("[data-add]").forEach((b) =>
-    b.addEventListener("click", () => GRForms.openEditor(b.getAttribute("data-add"), trip, null, opts))
+    b.addEventListener("click", () => {
+      const k = b.getAttribute("data-add");
+      const o = k === "stops" ? stopsOpts : k === "legs" ? legsOpts : opts;
+      GRForms.openEditor(k, trip, null, o);
+    })
   );
 
   // ---- present link ----

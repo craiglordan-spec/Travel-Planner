@@ -105,10 +105,11 @@ window.GRMap = (function () {
       });
       L.marker(mid, { icon, interactive: false, keyboard: false }).addTo(map);
     }
+    const hasCoord = (s) => s && Number.isFinite(s.lat) && Number.isFinite(s.lng);
     (trip.legs || []).forEach((l) => {
       const a = byId[l.from],
         b = byId[l.to];
-      if (!a || !b) return;
+      if (!hasCoord(a) || !hasCoord(b)) return;
       const A = [a.lat, a.lng],
         B = [b.lat, b.lng];
       const pts = l.kind === "transfer" ? [A, B] : arc(A, B, 0.16);
@@ -124,6 +125,7 @@ window.GRMap = (function () {
     // ---- markers ----
     const markers = {};
     (trip.stops || []).forEach((s, i) => {
+      if (!Number.isFinite(s.lat) || !Number.isFinite(s.lng)) return; // no coords yet
       const key = s.lat + "," + s.lng;
       if (markers[key]) return; // one pin per coordinate
       const c = colorFor(s.type);
@@ -181,13 +183,17 @@ window.GRMap = (function () {
     function focusStop(i) {
       const s = trip.stops[i];
       setActive(i);
+      if (!s || !Number.isFinite(s.lat) || !Number.isFinite(s.lng)) return;
       map.flyTo([s.lat, s.lng], s.type === "gateway" ? 5 : 7, { duration: 1.1 });
       const m = markers[s.lat + "," + s.lng];
       setTimeout(() => m && m.openPopup(), 700);
     }
     function fitAll() {
-      const b = L.latLngBounds((trip.stops || []).map((s) => [s.lat, s.lng]));
-      if (b.isValid()) map.flyToBounds(b.pad(0.15), { duration: 1.0 });
+      const pts = (trip.stops || [])
+        .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lng))
+        .map((s) => [s.lat, s.lng]);
+      const b = L.latLngBounds(pts);
+      if (pts.length && b.isValid()) map.flyToBounds(b.pad(0.15), { duration: 1.0 });
       setActive(-1);
       map.closePopup();
     }
@@ -218,10 +224,11 @@ window.GRMap = (function () {
       clearTimeout(timer);
     }
 
+    // onclick (not addEventListener) so re-mounting the map doesn't stack handlers
     const playBtn = document.getElementById("play");
     const fitBtn = document.getElementById("fit");
-    if (playBtn) playBtn.addEventListener("click", () => play(playBtn));
-    if (fitBtn) fitBtn.addEventListener("click", fitAll);
+    if (playBtn) playBtn.onclick = () => play(playBtn);
+    if (fitBtn) fitBtn.onclick = fitAll;
 
     fitAll();
     return { map, focusStop, fitAll };
