@@ -3,6 +3,7 @@
   "title": "Africa + Mauritius Grand Tour",
   "subtitle": "~4 weeks · August 2027 · a couple · upper-mid comfort",
   "when": "August 2027",
+  "startDate": "2027-08-01",
   "travellers": "Craig + 1",
   "budget": "~AUD $15,000–25,000 per person",
   "center": [-14, 40],
@@ -80,6 +81,32 @@
     { "from": "mara", "to": "mauritius", "kind": "fly", "label": "via Nairobi · ~4h" },
     { "from": "mauritius", "to": "johannesburg", "kind": "fly", "label": "Fly to JNB, then Qantas home via SYD" },
     { "from": "johannesburg", "to": "home", "kind": "fly", "label": "Qantas via SYD · ~18h" }
+  ],
+  "flights": [
+    { "id": "f1", "date": "2027-08-01", "airline": "Qantas", "flightNo": "TBC", "from": "Brisbane (BNE)", "to": "Sydney (SYD)", "depTime": "14:00", "arrTime": "15:35", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "Domestic connection to the Johannesburg service." },
+    { "id": "f2", "date": "2027-08-01", "airline": "Qantas", "flightNo": "QF63", "from": "Sydney (SYD)", "to": "Johannesburg (JNB)", "depTime": "18:15", "arrTime": "00:55", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "~14h nonstop; arrives early hours of 2 Aug." },
+    { "id": "f3", "date": "2027-08-03", "airline": "Federal Air", "flightNo": "TBC", "from": "Johannesburg (JNB)", "to": "Sabi Sand airstrip", "depTime": "10:30", "arrTime": "11:45", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "Light-aircraft transfer to the reserve, then short game-drive to the lodge." },
+    { "id": "f4", "date": "2027-08-07", "airline": "Airlink", "flightNo": "TBC", "from": "Sabi Sand / Skukuza", "to": "Victoria Falls (VFA)", "depTime": "12:00", "arrTime": "15:00", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "Via Johannesburg; ~1h45m on the JNB–VFA leg." },
+    { "id": "f5", "date": "2027-08-10", "airline": "Airlink / Kenya Airways", "flightNo": "TBC", "from": "Victoria Falls (VFA)", "to": "Nairobi (NBO) → Masai Mara", "depTime": "09:30", "arrTime": "17:00", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "One connection; light aircraft from Nairobi/Wilson to the Mara airstrip." },
+    { "id": "f6", "date": "2027-08-14", "airline": "Kenya Airways", "flightNo": "TBC", "from": "Nairobi (NBO)", "to": "Mauritius (MRU)", "depTime": "14:30", "arrTime": "20:30", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "~4h direct; morning game drive then fly out." },
+    { "id": "f7", "date": "2027-08-21", "airline": "Air Mauritius / SAA", "flightNo": "TBC", "from": "Mauritius (MRU)", "to": "Johannesburg (JNB)", "depTime": "13:00", "arrTime": "15:30", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "~4h to connect onto the Qantas service home." },
+    { "id": "f8", "date": "2027-08-21", "airline": "Qantas", "flightNo": "QF64", "from": "Johannesburg (JNB)", "to": "Sydney (SYD) → Brisbane", "depTime": "19:30", "arrTime": "18:00", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "Overnight; arrives Sydney 15 Aug afternoon, connect to Brisbane. (Arrival 22 Aug.)" }
+  ],
+  "accommodation": [
+    { "id": "a1", "name": "Johannesburg airport hotel (TBC)", "stopId": "johannesburg", "checkIn": "2027-08-02", "checkOut": "2027-08-03", "roomType": "Standard", "bookingRef": "", "cost": null, "notes": "One night to reset after the long flight before flying to the bush." },
+    { "id": "a2", "name": "Sabi Sands lodge (TBC — upper-mid)", "stopId": "sabi", "checkIn": "2027-08-03", "checkOut": "2027-08-07", "roomType": "Luxury suite, all-inclusive", "bookingRef": "", "cost": null, "notes": "Full-board with twice-daily game drives. Shortlist lodges next." },
+    { "id": "a3", "name": "Victoria Falls hotel (Zimbabwe side, TBC)", "stopId": "vicfalls", "checkIn": "2027-08-07", "checkOut": "2027-08-10", "roomType": "River/garden view", "bookingRef": "", "cost": null, "notes": "Walk to the Falls; day-trip to Zambia for Devil's Pool." },
+    { "id": "a4", "name": "Masai Mara tented camp (TBC)", "stopId": "mara", "checkIn": "2027-08-10", "checkOut": "2027-08-14", "roomType": "Luxury tent, all-inclusive", "bookingRef": "", "cost": null, "notes": "Positioned for the river crossings; book early for August." },
+    { "id": "a5", "name": "Mauritius resort (north/west coast, TBC)", "stopId": "mauritius", "checkIn": "2027-08-14", "checkOut": "2027-08-21", "roomType": "Ocean-view, half-board", "bookingRef": "", "cost": null, "notes": "Sheltered, sunny coast in August; base for whale watching." }
+  ],
+  "activities": [
+    { "id": "ac1", "date": "2027-08-04", "time": "06:00", "title": "Morning & evening game drives", "location": "Sabi Sands", "stopId": "sabi", "cost": null, "notes": "Big 5 — leopard and rhino focus." },
+    { "id": "ac2", "date": "2027-08-08", "time": "09:00", "title": "Guided tour of Victoria Falls", "location": "Victoria Falls, Zimbabwe", "stopId": "vicfalls", "cost": null, "notes": "Rainforest walk along the falls face (best views this side)." },
+    { "id": "ac3", "date": "2027-08-09", "time": "08:00", "title": "Devil's Pool & Livingstone Island", "location": "Zambia (day-trip)", "stopId": "vicfalls", "cost": null, "notes": "Low-water season only. KAZA UniVisa covers the border hop." },
+    { "id": "ac4", "date": "2027-08-09", "time": "15:00", "title": "Helicopter 'Flight of Angels'", "location": "Victoria Falls", "stopId": "vicfalls", "cost": null, "notes": "Aerial view of the falls and gorges." },
+    { "id": "ac5", "date": "2027-08-12", "time": "06:00", "title": "Great Migration river-crossing drives", "location": "Masai Mara", "stopId": "mara", "cost": null, "notes": "Full days tracking the herds at the Mara River." },
+    { "id": "ac6", "date": "2027-08-15", "time": "08:00", "title": "Whale & dolphin watching", "location": "West coast, Mauritius", "stopId": "mauritius", "cost": null, "notes": "Peak humpback season off the sheltered coast." },
+    { "id": "ac7", "date": "2027-08-18", "time": "10:00", "title": "Catamaran day & spa", "location": "Mauritius", "stopId": "mauritius", "cost": null, "notes": "A relaxed wind-down day." }
   ],
   "parks": [
     {

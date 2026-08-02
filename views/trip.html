@@ -7,55 +7,102 @@
 <link rel="stylesheet" href="/vendor/leaflet.css" />
 <link rel="stylesheet" href="/css/styles.css" />
 <script src="/vendor/leaflet.js"></script>
-<style>
-  #editModal{position:fixed;inset:0;background:rgba(30,22,14,.55);z-index:1000;display:none;align-items:center;justify-content:center;padding:24px}
-  #editModal .box{background:#fff;border-radius:14px;width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
-  #editModal .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-  #editModal textarea{flex:1;min-height:52vh;border:none;padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;resize:none;outline:none}
-  #editModal .ft{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
-  #editModal .err{color:#b23b1e;font-size:12.5px}
-</style>
 </head>
 <body>
 <div class="topbar">
   <div class="brand"><a href="/" style="color:inherit">Gravel Road <span>· Travel Planner</span></a></div>
   <div class="actions">
     <button class="btn ghost sm" id="present">Present link</button>
-    <button class="btn ghost sm" id="edit">Edit</button>
+    <button class="btn ghost sm" id="editJson">Edit stops (JSON)</button>
     <a class="btn ghost sm" href="/">All trips</a>
   </div>
 </div>
 
-<div id="app">
-  <aside id="panel">
-    <header></header>
-    <div id="controls">
-      <button class="btn" id="play">▶  Play route</button>
-      <button class="btn ghost" id="fit">Fit all</button>
+<nav class="subnav">
+  <button data-tab="map" class="active">🗺 Map</button>
+  <button data-tab="calendar">📅 Calendar</button>
+  <button data-tab="flights">✈ Flights</button>
+  <button data-tab="accommodation">🏨 Accommodation</button>
+  <button data-tab="activities">🎟 Activities</button>
+</nav>
+
+<!-- MAP -->
+<section id="tab-map" class="tabview map-view active">
+  <div id="app">
+    <aside id="panel">
+      <header></header>
+      <div id="controls">
+        <button class="btn" id="play">▶  Play route</button>
+        <button class="btn ghost" id="fit">Fit all</button>
+      </div>
+      <div id="list"></div>
+    </aside>
+    <div id="map">
+      <div class="legend">
+        <div class="row"><span class="dash"></span> Flight leg</div>
+        <div class="row"><span class="solid"></span> Safari transfer</div>
+        <div class="row"><span class="dot" style="background:#5a7d4f"></span> Safari</div>
+        <div class="row"><span class="dot" style="background:#7b4b74"></span> Beach</div>
+        <div class="row"><span class="dot" style="background:#3d7ea6"></span> Gateway</div>
+        <div class="row"><span style="width:16px;height:11px;border:1.5px dashed #d9a521;background:rgba(123,182,97,.28);border-radius:2px"></span> Park (approx.)</div>
+      </div>
     </div>
-    <div id="list"></div>
-  </aside>
-  <div id="map">
-    <div class="legend">
-      <div class="row"><span class="dash"></span> Flight leg</div>
-      <div class="row"><span class="solid"></span> Safari transfer</div>
-      <div class="row"><span class="dot" style="background:#5a7d4f"></span> Safari</div>
-      <div class="row"><span class="dot" style="background:#7b4b74"></span> Beach</div>
-      <div class="row"><span class="dot" style="background:#3d7ea6"></span> Gateway</div>
-      <div class="row"><span style="width:16px;height:11px;border:1.5px dashed #d9a521;background:rgba(123,182,97,.28);border-radius:2px"></span> Park (approx.)</div>
-    </div>
+  </div>
+</section>
+
+<!-- CALENDAR -->
+<section id="tab-calendar" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Calendar</h2><div class="sub">Day-by-day schedule — click an item to jump to it on the map.</div></div></div>
+    <div id="calendar" class="calwrap"></div>
+  </div>
+</section>
+
+<!-- FLIGHTS -->
+<section id="tab-flights" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Flights</h2><div class="sub">Every flight and transfer, with times, cabin and booking refs.</div></div><button class="btn" data-add="flights">+ Add flight</button></div>
+    <div id="flights" class="items"></div>
+  </div>
+</section>
+
+<!-- ACCOMMODATION -->
+<section id="tab-accommodation" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Accommodation</h2><div class="sub">Lodges, camps and hotels with check-in / check-out.</div></div><button class="btn" data-add="accommodation">+ Add stay</button></div>
+    <div id="accommodation" class="items"></div>
+  </div>
+</section>
+
+<!-- ACTIVITIES -->
+<section id="tab-activities" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Activities</h2><div class="sub">Tours, game drives, excursions and experiences.</div></div><button class="btn" data-add="activities">+ Add activity</button></div>
+    <div id="activities" class="items"></div>
+  </div>
+</section>
+
+<!-- item modal -->
+<div class="modal" id="itemModal">
+  <div class="box">
+    <div class="hd"><span id="imTitle">Edit</span><button class="btn ghost sm" id="imClose">Close</button></div>
+    <div class="bd" id="imBody"></div>
+    <div class="ft"><button class="danger" id="imDelete">Delete</button><button class="btn" id="imSave">Save</button></div>
   </div>
 </div>
 
-<div id="editModal">
+<!-- raw JSON modal (stops/legs) -->
+<div class="modal" id="jsonModal">
   <div class="box">
-    <div class="hd"><strong>Edit trip (JSON)</strong><button class="btn ghost sm" id="closeEdit">Close</button></div>
-    <textarea id="editText" spellcheck="false"></textarea>
-    <div class="ft"><span class="err" id="editErr"></span><button class="btn" id="saveEdit">Save changes</button></div>
+    <div class="hd"><span>Edit trip (JSON)</span><button class="btn ghost sm" id="jmClose">Close</button></div>
+    <div class="bd" style="padding:0"><textarea id="jmText" spellcheck="false" style="width:100%;min-height:52vh;border:none;padding:16px 18px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;resize:none;outline:none"></textarea></div>
+    <div class="ft"><span class="danger" id="jmErr" style="cursor:default"></span><button class="btn" id="jmSave">Save changes</button></div>
   </div>
 </div>
 
 <script src="/js/map.js"></script>
+<script src="/js/forms.js"></script>
+<script src="/js/calendar.js"></script>
 <script src="/js/trip.js"></script>
 </body>
 </html>
