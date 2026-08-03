@@ -197,6 +197,47 @@ window.GRForms = (function () {
     return id;
   }
 
+  // ---- date ripple ("flow-through") shared by all dated collections ----
+  // The "anchor" is the item's effective end date: check-out for a stay, the
+  // date for a flight or activity. Moving it offers to shift everything after.
+  const DATED_ANCHOR = { flights: "date", activities: "date", accommodation: "checkOut" };
+  function isoShift(iso, days) {
+    if (!iso) return iso;
+    const p = iso.split("-").map(Number);
+    const ms = Date.UTC(p[0], p[1] - 1, p[2]) + days * 86400000;
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+  function dayDelta(a, b) {
+    const pa = a.split("-").map(Number),
+      pb = b.split("-").map(Number);
+    return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
+  }
+  function allDated(trip) {
+    const out = [];
+    (trip.flights || []).forEach((x) => out.push({ x, type: "flights" }));
+    (trip.accommodation || []).forEach((x) => out.push({ x, type: "accommodation" }));
+    (trip.activities || []).forEach((x) => out.push({ x, type: "activities" }));
+    return out;
+  }
+  const anchorOf = (type, x) => (type === "accommodation" ? x.checkOut : x.date);
+  function downstreamItems(trip, editedItem, oldEnd) {
+    const res = [];
+    allDated(trip).forEach((t) => {
+      if (t.x === editedItem) return;
+      const a = anchorOf(t.type, t.x);
+      if (a && a >= oldEnd) res.push(t);
+    });
+    return res;
+  }
+  function shiftItem(t, days) {
+    if (t.type === "accommodation") {
+      if (t.x.checkIn) t.x.checkIn = isoShift(t.x.checkIn, days);
+      if (t.x.checkOut) t.x.checkOut = isoShift(t.x.checkOut, days);
+    } else if (t.x.date) {
+      t.x.date = isoShift(t.x.date, days);
+    }
+  }
+
   function fieldHtml(trip, key, name, val) {
     const f = SPECS[key].fields[name];
     const v = val == null ? "" : val;
@@ -256,6 +297,8 @@ window.GRForms = (function () {
         if (el.type === "number") v = v === "" ? null : Number(v);
         vals[el.getAttribute("data-f")] = v;
       });
+      const anchorField = DATED_ANCHOR[key];
+      const oldEnd = existing && anchorField ? existing[anchorField] : null;
       if (existing) {
         Object.assign(existing, vals);
       } else {
@@ -264,6 +307,23 @@ window.GRForms = (function () {
             ? slugId(vals.name, items)
             : key.slice(0, 2) + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
         items.push(vals);
+      }
+      // ripple: if a dated item's anchor moved, offer to flow the change through
+      // to everything scheduled on/after it (same behaviour as the start date)
+      if (existing && anchorField) {
+        const newEnd = existing[anchorField];
+        if (oldEnd && newEnd && oldEnd !== newEnd) {
+          const days = dayDelta(oldEnd, newEnd);
+          const affected = downstreamItems(trip, existing, oldEnd);
+          if (days !== 0 && affected.length &&
+            confirm(
+              `This moves the schedule by ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}.\n\n` +
+              `Shift the ${affected.length} later item${affected.length === 1 ? "" : "s"} (on or after ${oldEnd}) by the same amount so the rest of the trip flows through?\n\n` +
+              `OK = shift the rest · Cancel = change just this one.`
+            )) {
+            affected.forEach((t) => shiftItem(t, days));
+          }
+        }
       }
       modal.classList.remove("open");
       cleanup();
