@@ -159,10 +159,10 @@ a:hover{text-decoration:underline}
 .g-h{position:absolute;top:0;bottom:0;width:9px;cursor:col-resize;background:rgba(255,255,255,.001)}
 .g-hl{left:0}
 .g-hr{right:0}
-.g-pin{position:absolute;top:6px;height:22px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:20px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25);transform:translateX(-4px);cursor:grab;touch-action:none;user-select:none}
-.g-pin:active{cursor:grabbing}
-.g-pin.flight{background:#c4622d}
-.g-pin.act{background:#5a7d4f}
+.g-mark{position:absolute;top:8px;width:18px;height:18px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:grab;touch-action:none;user-select:none}
+.g-mark:active{cursor:grabbing}
+.g-mark.flight{background:#c4622d;border-radius:4px;transform:rotate(45deg)}
+.g-mark.act{background:#5a7d4f;border-radius:50%}
 
 @media(max-width:760px){
   #app{flex-direction:column}

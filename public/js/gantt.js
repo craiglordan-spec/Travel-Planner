@@ -77,28 +77,23 @@ window.GRGantt = (function () {
       rows += rowHtml("🏨 " + esc(abbr(a.name, 16)), bar);
     });
 
-    // flights (single lane)
-    if (flights.length) {
-      let bars = "";
-      flights.forEach((f) => {
-        if (!f.date) return;
-        const left = idx(f.date) * DW;
-        bars += `<div class="g-pin flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : ""))}">✈ ${esc(abbr(f.to || f.from, 12))}</div>`;
-      });
-      rows += rowHtml("✈ Flights", bars);
-    }
+    // flights — one row each, single-day diamond marker on the date
+    const strip = (s) => String(s || "").replace(/\s*\([^)]*\)/g, ""); // drop "(BNE)" codes
+    flights.forEach((f) => {
+      if (!f.date) return;
+      const left = idx(f.date) * DW + DW / 2 - 9;
+      const mark = `<div class="g-mark flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : ""))}"></div>`;
+      rows += rowHtml(`✈ ${esc(abbr(strip(f.from) + " → " + strip(f.to), 22))}`, mark);
+    });
 
-    // activities (single lane)
-    if (acts.length) {
-      let bars = "";
-      acts.forEach((a) => {
-        if (!a.date) return;
-        const left = idx(a.date) * DW;
-        const click = a.stopId ? "click" : "";
-        bars += `<div class="g-pin act ${click}" data-type="activities" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}">${esc(abbr(a.title, 14))}</div>`;
-      });
-      rows += rowHtml("🎟 Activities", bars);
-    }
+    // activities — one row each, single-day marker on the date
+    acts.forEach((a) => {
+      if (!a.date) return;
+      const left = idx(a.date) * DW + DW / 2 - 9;
+      const click = a.stopId ? "click" : "";
+      const mark = `<div class="g-mark act ${click}" data-type="activities" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}"></div>`;
+      rows += rowHtml(`🎟 ${esc(abbr(a.title, 22))}`, mark);
+    });
 
     el.innerHTML =
       `<div class="g-scroll">` +
@@ -177,8 +172,8 @@ window.GRGantt = (function () {
       if (hl) attachDrag(hl, { type: "accommodation", id, mode: "left" });
       if (hr) attachDrag(hr, { type: "accommodation", id, mode: "right" });
     });
-    el.querySelectorAll(".g-pin").forEach((pin) => {
-      attachDrag(pin, { type: pin.dataset.type, id: pin.dataset.id, mode: "move", stopId: pin.dataset.stop || "" });
+    el.querySelectorAll(".g-mark").forEach((mk) => {
+      attachDrag(mk, { type: mk.dataset.type, id: mk.dataset.id, mode: "move", stopId: mk.dataset.stop || "" });
     });
   }
 
