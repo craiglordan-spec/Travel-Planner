@@ -23,6 +23,7 @@
   <button data-tab="map" class="active">🗺 Map</button>
   <button data-tab="route">📍 Route</button>
   <button data-tab="calendar">📅 Calendar</button>
+  <button data-tab="timeline">📊 Timeline</button>
   <button data-tab="flights">✈ Flights</button>
   <button data-tab="accommodation">🏨 Accommodation</button>
   <button data-tab="activities">🎟 Activities</button>
@@ -67,6 +68,14 @@
   <div class="tabpad">
     <div class="tabhead"><div><h2>Calendar</h2><div class="sub">Day-by-day schedule — click an item to jump to it on the map.</div></div></div>
     <div id="calendar" class="calwrap"></div>
+  </div>
+</section>
+
+<!-- TIMELINE (gantt) -->
+<section id="tab-timeline" class="tabview">
+  <div class="tabpad" style="max-width:none">
+    <div class="tabhead"><div><h2>Timeline</h2><div class="sub">Gantt view — stays as bars, flights and activities as markers across the dates. Click a linked bar to jump to it on the map.</div></div></div>
+    <div id="gantt"></div>
   </div>
 </section>
 
@@ -136,6 +145,7 @@
 <script src="/js/map.js"></script>
 <script src="/js/forms.js"></script>
 <script src="/js/calendar.js"></script>
+<script src="/js/gantt.js"></script>
 <script src="/js/trip.js"></script>
 </body>
 </html>

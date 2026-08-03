@@ -28,6 +28,7 @@
 
   function renderAll() {
     GRCalendar.render(trip, opts);
+    GRGantt.render(trip, opts);
     GRForms.renderList("flights", trip, opts);
     GRForms.renderList("accommodation", trip, opts);
     GRForms.renderList("activities", trip, opts);

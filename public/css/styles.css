@@ -137,6 +137,29 @@ a:hover{text-decoration:underline}
 .ev .txt{font-size:13px;line-height:1.45}
 .ev .txt .sub{color:var(--muted);font-size:12px}
 
+/* ---------- gantt / timeline ---------- */
+.g-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.g-headrow,.g-row{display:flex;align-items:stretch}
+.g-label{width:158px;flex-shrink:0;position:sticky;left:0;z-index:2;background:#fff;border-right:1px solid var(--line);padding:8px 10px;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center}
+.g-corner{background:#faf6ef;font-weight:700}
+.g-headrow{position:sticky;top:0;z-index:3;background:#faf6ef;border-bottom:1px solid var(--line)}
+.g-timehead{display:flex;background:#faf6ef}
+.g-daycell{flex-shrink:0;border-left:1px solid #efe7db;text-align:center;padding:3px 0 4px;position:relative}
+.g-daycell.wknd{background:#f4eee4}
+.g-daycell .g-mon{font-weight:800;color:var(--terra);height:12px;font-size:9.5px;white-space:nowrap}
+.g-daycell .g-dow{opacity:.6;font-size:9.5px}
+.g-daycell .g-dnum{font-weight:700;color:var(--ink);font-size:11px}
+.g-body .g-row{border-bottom:1px solid #f0e9dd}
+.g-body .g-row:last-child{border-bottom:none}
+.g-track{position:relative;height:34px;flex-shrink:0}
+.g-bar{position:absolute;top:5px;height:24px;border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 8px;font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+.g-bar.stay{background:#7b4b74}
+.g-bar .g-n{opacity:.82;font-weight:700}
+.g-bar.click,.g-pin.click{cursor:pointer}
+.g-pin{position:absolute;top:6px;height:22px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:20px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25);transform:translateX(-4px)}
+.g-pin.flight{background:#c4622d}
+.g-pin.act{background:#5a7d4f}
+
 @media(max-width:760px){
   #app{flex-direction:column}
   #panel{width:100%;height:46%;order:2;border-right:none;border-top:1px solid var(--line)}
