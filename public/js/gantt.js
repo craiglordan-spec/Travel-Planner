@@ -14,6 +14,7 @@ window.GRGantt = (function () {
     return Date.UTC(p[0], p[1] - 1, p[2]);
   };
   const fromUTC = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const isoShift = (iso, days) => (iso ? fromUTC(toUTC(iso) + days * 86400000) : iso);
   const abbr = (s, n) => {
     s = String(s || "");
     return s.length > (n || 16) ? s.slice(0, (n || 16) - 1) + "…" : s;
@@ -70,7 +71,9 @@ window.GRGantt = (function () {
       const nights = Math.max(1, idx(a.checkOut) - idx(a.checkIn));
       const w = Math.max(DW, (idx(a.checkOut) - idx(a.checkIn)) * DW);
       const click = a.stopId ? "click" : "";
-      const bar = `<div class="g-bar stay ${click}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px;width:${w}px" title="${esc(a.name)} · ${esc(a.checkIn)} → ${esc(a.checkOut)}">${esc(abbr(a.name, 22))} <span class="g-n">${nights}n</span></div>`;
+      const bar =
+        `<div class="g-bar stay ${click}" data-type="accommodation" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px;width:${w}px" title="${esc(a.name)} · ${esc(a.checkIn)} → ${esc(a.checkOut)}">` +
+        `<span class="g-h g-hl"></span>${esc(abbr(a.name, 22))} <span class="g-n">${nights}n</span><span class="g-h g-hr"></span></div>`;
       rows += rowHtml("🏨 " + esc(abbr(a.name, 16)), bar);
     });
 
@@ -80,7 +83,7 @@ window.GRGantt = (function () {
       flights.forEach((f) => {
         if (!f.date) return;
         const left = idx(f.date) * DW;
-        bars += `<div class="g-pin flight" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : ""))}">✈ ${esc(abbr(f.to || f.from, 12))}</div>`;
+        bars += `<div class="g-pin flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : ""))}">✈ ${esc(abbr(f.to || f.from, 12))}</div>`;
       });
       rows += rowHtml("✈ Flights", bars);
     }
@@ -92,7 +95,7 @@ window.GRGantt = (function () {
         if (!a.date) return;
         const left = idx(a.date) * DW;
         const click = a.stopId ? "click" : "";
-        bars += `<div class="g-pin act ${click}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}">${esc(abbr(a.title, 14))}</div>`;
+        bars += `<div class="g-pin act ${click}" data-type="activities" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}">${esc(abbr(a.title, 14))}</div>`;
       });
       rows += rowHtml("🎟 Activities", bars);
     }
@@ -103,9 +106,79 @@ window.GRGantt = (function () {
       `<div class="g-body">${rows}</div>` +
       `</div>`;
 
-    el.querySelectorAll(".g-bar.click[data-stop], .g-pin.click[data-stop]").forEach((node) => {
-      const sid = node.getAttribute("data-stop");
-      if (sid) node.addEventListener("click", () => opts.onFocusStop && opts.onFocusStop(sid));
+    // ---- drag to reschedule ----
+    function commitDrag(type, id, mode, delta) {
+      const arr = trip[type] || [];
+      const item = arr.find((x) => x.id === id);
+      if (!item) return render(trip, opts);
+      const oldEnd = type === "accommodation" ? item.checkOut : item.date;
+      if (type === "accommodation") {
+        if (mode === "move") {
+          item.checkIn = isoShift(item.checkIn, delta);
+          item.checkOut = isoShift(item.checkOut, delta);
+        } else if (mode === "right") {
+          let co = isoShift(item.checkOut, delta);
+          if (toUTC(co) <= toUTC(item.checkIn)) co = isoShift(item.checkIn, 1);
+          item.checkOut = co;
+        } else if (mode === "left") {
+          let ci = isoShift(item.checkIn, delta);
+          if (toUTC(ci) >= toUTC(item.checkOut)) ci = isoShift(item.checkOut, -1);
+          item.checkIn = ci;
+        }
+      } else {
+        item.date = isoShift(item.date, delta);
+      }
+      if (window.GRForms && GRForms.rippleAfterEdit) GRForms.rippleAfterEdit(trip, type, item, oldEnd);
+      opts.onChange && opts.onChange(trip);
+    }
+
+    function attachDrag(node, spec) {
+      node.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const startX = e.clientX;
+        const origLeft = parseFloat(node.style.left) || 0;
+        const origWidth = parseFloat(node.style.width) || 0;
+        let moved = false;
+        try { node.setPointerCapture(e.pointerId); } catch (_) {}
+        const mv = (ev) => {
+          const dx = ev.clientX - startX;
+          if (Math.abs(dx) > 3) moved = true;
+          if (spec.mode === "move") node.style.left = origLeft + dx + "px";
+          else if (spec.mode === "right") node.style.width = Math.max(DW, origWidth + dx) + "px";
+          else if (spec.mode === "left") {
+            node.style.left = origLeft + dx + "px";
+            node.style.width = Math.max(DW, origWidth - dx) + "px";
+          }
+        };
+        const up = (ev) => {
+          node.removeEventListener("pointermove", mv);
+          node.removeEventListener("pointerup", up);
+          const dx = ev.clientX - startX;
+          const delta = Math.round(dx / DW);
+          if (!moved) {
+            if (spec.stopId && opts.onFocusStop) opts.onFocusStop(spec.stopId);
+            return;
+          }
+          if (delta === 0) return render(trip, opts); // snap back
+          commitDrag(spec.type, spec.id, spec.mode, delta);
+        };
+        node.addEventListener("pointermove", mv);
+        node.addEventListener("pointerup", up);
+      });
+    }
+
+    el.querySelectorAll(".g-bar.stay").forEach((bar) => {
+      const id = bar.dataset.id,
+        stopId = bar.dataset.stop || "";
+      attachDrag(bar, { type: "accommodation", id, mode: "move", stopId });
+      const hl = bar.querySelector(".g-hl");
+      const hr = bar.querySelector(".g-hr");
+      if (hl) attachDrag(hl, { type: "accommodation", id, mode: "left" });
+      if (hr) attachDrag(hr, { type: "accommodation", id, mode: "right" });
+    });
+    el.querySelectorAll(".g-pin").forEach((pin) => {
+      attachDrag(pin, { type: pin.dataset.type, id: pin.dataset.id, mode: "move", stopId: pin.dataset.stop || "" });
     });
   }
 

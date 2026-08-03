@@ -152,11 +152,15 @@ a:hover{text-decoration:underline}
 .g-body .g-row{border-bottom:1px solid #f0e9dd}
 .g-body .g-row:last-child{border-bottom:none}
 .g-track{position:relative;height:34px;flex-shrink:0}
-.g-bar{position:absolute;top:5px;height:24px;border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 8px;font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.22)}
+.g-bar{position:absolute;top:5px;height:24px;border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 8px;font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.22);cursor:grab;touch-action:none;user-select:none}
+.g-bar:active{cursor:grabbing}
 .g-bar.stay{background:#7b4b74}
 .g-bar .g-n{opacity:.82;font-weight:700}
-.g-bar.click,.g-pin.click{cursor:pointer}
-.g-pin{position:absolute;top:6px;height:22px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:20px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25);transform:translateX(-4px)}
+.g-h{position:absolute;top:0;bottom:0;width:9px;cursor:col-resize;background:rgba(255,255,255,.001)}
+.g-hl{left:0}
+.g-hr{right:0}
+.g-pin{position:absolute;top:6px;height:22px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:20px;font-size:10.5px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25);transform:translateX(-4px);cursor:grab;touch-action:none;user-select:none}
+.g-pin:active{cursor:grabbing}
 .g-pin.flight{background:#c4622d}
 .g-pin.act{background:#5a7d4f}
 

@@ -238,6 +238,26 @@ window.GRForms = (function () {
     }
   }
 
+  // Shared flow-through prompt: given an item whose anchor moved from oldEnd,
+  // offer to shift every item on/after it by the same delta. Used by both the
+  // form editor and the Gantt drag-to-reschedule.
+  function rippleAfterEdit(trip, key, item, oldEnd) {
+    const anchorField = DATED_ANCHOR[key];
+    if (!anchorField || !oldEnd) return;
+    const newEnd = item[anchorField];
+    if (!newEnd || oldEnd === newEnd) return;
+    const days = dayDelta(oldEnd, newEnd);
+    const affected = downstreamItems(trip, item, oldEnd);
+    if (days !== 0 && affected.length &&
+      confirm(
+        `This moves the schedule by ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}.\n\n` +
+        `Shift the ${affected.length} later item${affected.length === 1 ? "" : "s"} (on or after ${oldEnd}) by the same amount so the rest of the trip flows through?\n\n` +
+        `OK = shift the rest · Cancel = change just this one.`
+      )) {
+      affected.forEach((t) => shiftItem(t, days));
+    }
+  }
+
   function fieldHtml(trip, key, name, val) {
     const f = SPECS[key].fields[name];
     const v = val == null ? "" : val;
@@ -309,22 +329,7 @@ window.GRForms = (function () {
         items.push(vals);
       }
       // ripple: if a dated item's anchor moved, offer to flow the change through
-      // to everything scheduled on/after it (same behaviour as the start date)
-      if (existing && anchorField) {
-        const newEnd = existing[anchorField];
-        if (oldEnd && newEnd && oldEnd !== newEnd) {
-          const days = dayDelta(oldEnd, newEnd);
-          const affected = downstreamItems(trip, existing, oldEnd);
-          if (days !== 0 && affected.length &&
-            confirm(
-              `This moves the schedule by ${days > 0 ? "+" : ""}${days} day${Math.abs(days) === 1 ? "" : "s"}.\n\n` +
-              `Shift the ${affected.length} later item${affected.length === 1 ? "" : "s"} (on or after ${oldEnd}) by the same amount so the rest of the trip flows through?\n\n` +
-              `OK = shift the rest · Cancel = change just this one.`
-            )) {
-            affected.forEach((t) => shiftItem(t, days));
-          }
-        }
-      }
+      if (existing && anchorField) rippleAfterEdit(trip, key, existing, oldEnd);
       modal.classList.remove("open");
       cleanup();
       opts.onChange(trip);
@@ -348,5 +353,5 @@ window.GRForms = (function () {
     }
   }
 
-  return { SPECS, renderList, openEditor };
+  return { SPECS, renderList, openEditor, rippleAfterEdit };
 })();
