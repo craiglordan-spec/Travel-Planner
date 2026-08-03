@@ -117,6 +117,86 @@
     })
   );
 
+  // ---- trip settings + date flow-through ----
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+  }
+  function isoShift(iso, days) {
+    if (!iso) return iso;
+    const p = iso.split("-").map(Number);
+    const ms = Date.UTC(p[0], p[1] - 1, p[2]) + days * 86400000;
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+  function isoDelta(a, b) {
+    const pa = a.split("-").map(Number),
+      pb = b.split("-").map(Number);
+    return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
+  }
+  function countDated() {
+    let n = 0;
+    (trip.flights || []).forEach((f) => f.date && n++);
+    (trip.accommodation || []).forEach((a) => (a.checkIn || a.checkOut) && n++);
+    (trip.activities || []).forEach((a) => a.date && n++);
+    return n;
+  }
+  function shiftAllDates(days) {
+    (trip.flights || []).forEach((f) => { if (f.date) f.date = isoShift(f.date, days); });
+    (trip.accommodation || []).forEach((a) => {
+      if (a.checkIn) a.checkIn = isoShift(a.checkIn, days);
+      if (a.checkOut) a.checkOut = isoShift(a.checkOut, days);
+    });
+    (trip.activities || []).forEach((a) => { if (a.date) a.date = isoShift(a.date, days); });
+  }
+
+  const sm = document.getElementById("settingsModal");
+  document.getElementById("settings").addEventListener("click", () => {
+    document.getElementById("st-title").value = trip.title || "";
+    document.getElementById("st-subtitle").value = trip.subtitle || "";
+    document.getElementById("st-startDate").value = trip.startDate || "";
+    document.getElementById("st-when").value = trip.when || "";
+    document.getElementById("st-travellers").value = trip.travellers || "";
+    document.getElementById("st-budget").value = trip.budget || "";
+    const n = countDated();
+    document.getElementById("st-note").textContent = n
+      ? `Tip: changing the start date will offer to shift all ${n} dated items (flights, stays, activities) by the same number of days, so the whole schedule moves together.`
+      : "";
+    sm.classList.add("open");
+  });
+  document.getElementById("stClose").addEventListener("click", () => sm.classList.remove("open"));
+  document.getElementById("stSave").addEventListener("click", async () => {
+    const newStart = document.getElementById("st-startDate").value || "";
+    const oldStart = trip.startDate || "";
+    trip.title = document.getElementById("st-title").value.trim() || trip.title;
+    trip.subtitle = document.getElementById("st-subtitle").value.trim();
+    trip.when = document.getElementById("st-when").value.trim();
+    trip.travellers = document.getElementById("st-travellers").value.trim();
+    trip.budget = document.getElementById("st-budget").value.trim();
+
+    if (newStart && oldStart && newStart !== oldStart) {
+      const d = isoDelta(oldStart, newStart);
+      const n = countDated();
+      if (n > 0 && d !== 0 &&
+        confirm(`Move the start to ${newStart}?\n\nShift all ${n} dated items by ${d > 0 ? "+" : ""}${d} day${Math.abs(d) === 1 ? "" : "s"} so the schedule keeps the same relative days.\n\nOK = shift everything · Cancel = change the start only.`)) {
+        shiftAllDates(d);
+      }
+    }
+    trip.startDate = newStart;
+    sm.classList.remove("open");
+    try {
+      await persist();
+      const hdr = document.querySelector("#panel header");
+      if (hdr)
+        hdr.innerHTML =
+          `<h1>${escapeHtml(trip.title || "")}</h1>` +
+          (trip.subtitle ? `<div class="sub">${escapeHtml(trip.subtitle)}</div>` : "");
+      renderAll();
+    } catch (e) {
+      alert("Could not save: " + e.message);
+    }
+  });
+
   // ---- present link ----
   document.getElementById("present").addEventListener("click", () => {
     const url = location.origin + "/present?id=" + encodeURIComponent(id);
