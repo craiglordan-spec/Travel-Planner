@@ -1,12 +1,14 @@
 "use strict";
-(async function () {
+GRAuth.ready(async function () {
   const id = decodeURIComponent(location.pathname.split("/").pop());
+  const signoutBtn = document.getElementById("signout");
+  if (signoutBtn) signoutBtn.addEventListener("click", () => GRAuth.logout());
   let trip = null;
   let mapApi = null;
   let mapDirty = false; // route changed while map tab hidden → rebuild on next view
 
   try {
-    const res = await fetch("/api/trips/" + id);
+    const res = await GRAuth.apiFetch("/api/trips/" + id);
     if (!res.ok) throw new Error("Trip not found");
     trip = await res.json();
   } catch (e) {
@@ -38,7 +40,7 @@
   renderAll();
 
   async function persist() {
-    const res = await fetch("/api/trips/" + id, {
+    const res = await GRAuth.apiFetch("/api/trips/" + id, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(trip),
@@ -203,7 +205,7 @@
     const url = location.origin + "/present?id=" + encodeURIComponent(id);
     const msg =
       url +
-      "\n\n(If a read key is set on the server, append &key=YOUR_READ_KEY to share without the password.)";
+      "\n\n(Viewers must sign in with the Travel Planner login to open this.)";
     if (navigator.clipboard)
       navigator.clipboard.writeText(url).then(
         () => alert("Present link copied:\n" + msg),
@@ -233,4 +235,4 @@
     await saveTrip(parsed);
     location.reload(); // stops/legs may have changed → re-mount the map
   });
-})();
+});

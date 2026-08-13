@@ -1,13 +1,15 @@
 "use strict";
-(async function () {
+GRAuth.ready(async function () {
   const grid = document.getElementById("grid");
+  const signout = document.getElementById("signout");
+  if (signout) signout.addEventListener("click", () => GRAuth.logout());
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
     );
   }
   try {
-    const res = await fetch("/api/trips");
+    const res = await GRAuth.apiFetch("/api/trips");
     if (!res.ok) throw new Error("Could not load trips");
     const trips = await res.json();
     if (!trips.length) {
@@ -41,7 +43,7 @@
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 40);
-    const res = await fetch("/api/trips", {
+    const res = await GRAuth.apiFetch("/api/trips", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -59,4 +61,4 @@
     if (res.ok) location.href = "/trip/" + id;
     else alert((await res.json()).error || "Could not create trip");
   });
-})();
+});
