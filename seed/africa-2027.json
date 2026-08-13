@@ -74,13 +74,13 @@
     }
   ],
   "legs": [
-    { "from": "brisbane", "to": "johannesburg", "kind": "fly", "label": "Qantas via SYD · ~18h" },
+    { "from": "brisbane", "to": "johannesburg", "kind": "fly", "label": "Qantas via SYD · ~18h", "via": [ { "name": "Sydney", "lat": -33.8688, "lng": 151.2093 } ] },
     { "from": "johannesburg", "to": "sabi", "kind": "transfer", "label": "light aircraft · ~1h" },
     { "from": "sabi", "to": "vicfalls", "kind": "fly", "label": "via JNB · ~1h45m flight" },
     { "from": "vicfalls", "to": "mara", "kind": "fly", "label": "1 stop · ~½ day" },
     { "from": "mara", "to": "mauritius", "kind": "fly", "label": "via Nairobi · ~4h" },
     { "from": "mauritius", "to": "johannesburg", "kind": "fly", "label": "Fly to JNB, then Qantas home via SYD" },
-    { "from": "johannesburg", "to": "home", "kind": "fly", "label": "Qantas via SYD · ~18h" }
+    { "from": "johannesburg", "to": "home", "kind": "fly", "label": "Qantas via SYD · ~18h", "via": [ { "name": "Sydney", "lat": -33.8688, "lng": 151.2093 } ] }
   ],
   "flights": [
     { "id": "f1", "date": "2027-08-01", "airline": "Qantas", "flightNo": "TBC", "from": "Brisbane (BNE)", "to": "Sydney (SYD)", "depTime": "14:00", "arrTime": "15:35", "cabin": "Economy", "bookingRef": "", "cost": null, "notes": "Domestic connection to the Johannesburg service." },

@@ -61,6 +61,9 @@ a:hover{text-decoration:underline}
 
 .marker-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
 .marker-pin span{transform:rotate(45deg);color:#fff;font-weight:700;font-size:13px}
+.marker-pin.transit{box-shadow:0 2px 6px rgba(0,0,0,.35),inset 0 0 0 2px rgba(255,255,255,.4)}
+.stop.via .name{font-weight:600}
+.stop.via .meta{color:#59708a}
 .leaflet-popup-content-wrapper{border-radius:12px}
 .leaflet-popup-content{margin:14px 16px;font-family:inherit}
 .pop h3{font-size:15px;margin-bottom:3px}

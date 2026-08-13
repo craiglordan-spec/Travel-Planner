@@ -85,10 +85,9 @@ GRAuth.ready(async function () {
   }
 
   function focusStop(stopId) {
-    const idx = (trip.stops || []).findIndex((s) => s.id === stopId);
-    if (idx < 0) return;
+    if (!(trip.stops || []).some((s) => s.id === stopId)) return;
     showTab("map");
-    setTimeout(() => mapApi && mapApi.focusStop(idx), 120);
+    setTimeout(() => mapApi && mapApi.focusStop(stopId), 120);
   }
 
   // ---- tabs ----

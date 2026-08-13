@@ -126,11 +126,15 @@ window.GRForms = (function () {
       },
       rows: [["from","to"],["kind"],["label"]],
       card(it, trip) {
+        const chain = [stopName(trip, it.from) || "?"]
+          .concat((it.via || []).map((v) => v.name || "?"))
+          .concat([stopName(trip, it.to) || "?"]);
+        const nv = (it.via || []).length;
         return {
-          title: `${esc(stopName(trip, it.from) || "?")} → ${esc(stopName(trip, it.to) || "?")}`,
+          title: chain.map(esc).join(" → "),
           d: it.kind === "transfer" ? "Transfer (solid line)" : "Flight (dashed arc)",
           meta: it.label,
-          tags: [],
+          tags: nv ? [`${nv} stopover${nv === 1 ? "" : "s"}`] : [],
         };
       },
     },
@@ -283,6 +287,105 @@ window.GRForms = (function () {
     return `<div class="field"><label>${esc(f.label)}</label>${input}</div>`;
   }
 
+  // ---- stopover ("via") editor for route legs ---------------------------
+  // Geocode a place name to coordinates via OpenStreetMap Nominatim. Runs in
+  // the user's browser; low-volume, one call per "Look up" click.
+  async function geocodePlace(name) {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(name);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const arr = await res.json();
+    if (!arr.length) return null;
+    const h = arr[0];
+    return {
+      lat: +Number(h.lat).toFixed(5),
+      lng: +Number(h.lon).toFixed(5),
+      label: h.display_name,
+    };
+  }
+
+  function viaRow(v) {
+    v = v || {};
+    const row = document.createElement("div");
+    row.className = "via-row";
+    row.innerHTML =
+      `<div class="frow" style="align-items:flex-end;gap:8px">` +
+      `<div class="field" style="flex:2;margin-bottom:8px"><label>Place</label><input class="v-name" type="text" value="${esc(v.name || "")}" placeholder="e.g. Sydney" /></div>` +
+      `<div class="field" style="flex:1;margin-bottom:8px"><label>Lat</label><input class="v-lat" type="number" step="any" value="${v.lat == null ? "" : esc(v.lat)}" /></div>` +
+      `<div class="field" style="flex:1;margin-bottom:8px"><label>Lng</label><input class="v-lng" type="number" step="any" value="${v.lng == null ? "" : esc(v.lng)}" /></div>` +
+      `<button type="button" class="btn ghost sm v-look" style="margin-bottom:8px">Look up</button>` +
+      `<button type="button" class="btn ghost sm v-del" style="margin-bottom:8px" title="Remove stopover">✕</button>` +
+      `</div>` +
+      `<div class="v-msg" style="font-size:11px;min-height:14px;margin:-4px 0 8px"></div>`;
+    const look = row.querySelector(".v-look");
+    const msg = row.querySelector(".v-msg");
+    row.querySelector(".v-del").addEventListener("click", () => row.remove());
+    look.addEventListener("click", async () => {
+      const name = row.querySelector(".v-name").value.trim();
+      if (!name) {
+        msg.style.color = "#c0392b";
+        msg.textContent = "Enter a place name first.";
+        return;
+      }
+      const label = look.textContent;
+      look.disabled = true;
+      look.textContent = "…";
+      msg.style.color = "#8a7c6b";
+      msg.textContent = "Looking up…";
+      try {
+        const hit = await geocodePlace(name);
+        if (hit) {
+          row.querySelector(".v-lat").value = hit.lat;
+          row.querySelector(".v-lng").value = hit.lng;
+          msg.style.color = "#5a7d4f";
+          msg.textContent = "✓ " + hit.label;
+        } else {
+          msg.style.color = "#c0392b";
+          msg.textContent = "No match — enter coordinates manually.";
+        }
+      } catch (e) {
+        msg.style.color = "#c0392b";
+        msg.textContent = "Lookup failed — enter coordinates manually.";
+      } finally {
+        look.disabled = false;
+        look.textContent = label;
+      }
+    });
+    return row;
+  }
+
+  function injectViaEditor(body, via) {
+    const wrap = document.createElement("div");
+    wrap.className = "via-editor";
+    wrap.style.cssText = "border-top:1px solid var(--line);margin-top:6px;padding-top:12px";
+    wrap.innerHTML =
+      `<label style="display:block;font-size:12px;font-weight:600;color:#6b5c48;margin-bottom:4px">Stopovers / via (optional)</label>` +
+      `<div style="font-size:11.5px;color:#8a7c6b;margin-bottom:10px">Shown as numbered pins between From and To, in order. Type a place and press “Look up” to fill coordinates.</div>` +
+      `<div class="via-rows"></div>` +
+      `<button type="button" class="btn ghost sm via-add">+ Add stopover</button>`;
+    body.appendChild(wrap);
+    const rows = wrap.querySelector(".via-rows");
+    (via || []).forEach((v) => rows.appendChild(viaRow(v)));
+    wrap.querySelector(".via-add").addEventListener("click", () => rows.appendChild(viaRow({})));
+  }
+
+  function collectVia(body) {
+    const out = [];
+    body.querySelectorAll(".via-row").forEach((row) => {
+      const name = row.querySelector(".v-name").value.trim();
+      const latRaw = row.querySelector(".v-lat").value;
+      const lngRaw = row.querySelector(".v-lng").value;
+      if (!name && latRaw === "" && lngRaw === "") return; // skip blank row
+      const o = { name };
+      if (latRaw !== "") o.lat = Number(latRaw);
+      if (lngRaw !== "") o.lng = Number(lngRaw);
+      out.push(o);
+    });
+    return out;
+  }
+
   function openEditor(key, trip, itemId, opts) {
     const spec = SPECS[key];
     const modal = document.getElementById("itemModal");
@@ -301,6 +404,9 @@ window.GRForms = (function () {
       )
       .join("");
 
+    // legs get an extra dynamic stopover ("via") editor below the standard fields
+    if (key === "legs") injectViaEditor(body, data.via || []);
+
     const del = document.getElementById("imDelete");
     del.style.display = existing ? "block" : "none";
 
@@ -317,6 +423,7 @@ window.GRForms = (function () {
         if (el.type === "number") v = v === "" ? null : Number(v);
         vals[el.getAttribute("data-f")] = v;
       });
+      if (key === "legs") vals.via = collectVia(body);
       const anchorField = DATED_ANCHOR[key];
       const oldEnd = existing && anchorField ? existing[anchorField] : null;
       if (existing) {
