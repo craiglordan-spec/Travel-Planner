@@ -29,7 +29,7 @@ window.GRGantt = (function () {
 
     const dates = [];
     if (trip.startDate) dates.push(trip.startDate);
-    flights.forEach((f) => f.date && dates.push(f.date));
+    flights.forEach((f) => { if (f.date) dates.push(f.date); if (f.arrDate) dates.push(f.arrDate); });
     acts.forEach((a) => a.date && dates.push(a.date));
     accom.forEach((a) => {
       if (a.checkIn) dates.push(a.checkIn);
@@ -82,7 +82,12 @@ window.GRGantt = (function () {
     flights.forEach((f) => {
       if (!f.date) return;
       const left = idx(f.date) * DW + DW / 2 - 9;
-      const mark = `<div class="g-mark flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : ""))}"></div>`;
+      const arr = f.arrDate && f.arrDate !== f.date ? " → arr " + f.arrDate + (f.arrTime ? " " + f.arrTime : "") : f.arrTime ? " → arr " + f.arrTime : "";
+      // overnight / multi-day flights get a faint span to the landing day
+      const span = f.arrDate && f.arrDate > f.date
+        ? `<div class="g-span" style="position:absolute;top:50%;height:4px;margin-top:-2px;left:${idx(f.date) * DW + DW / 2}px;width:${(idx(f.arrDate) - idx(f.date)) * DW}px;background:rgba(232,132,47,.45);border-radius:2px;pointer-events:none"></div>`
+        : "";
+      const mark = span + `<div class="g-mark flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : "") + arr)}"></div>`;
       rows += rowHtml(`✈ ${esc(abbr(strip(f.from) + " → " + strip(f.to), 22))}`, mark);
     });
 
@@ -122,6 +127,7 @@ window.GRGantt = (function () {
         }
       } else {
         item.date = isoShift(item.date, delta);
+        if (item.arrDate) item.arrDate = isoShift(item.arrDate, delta);
       }
       if (window.GRForms && GRForms.rippleAfterEdit) GRForms.rippleAfterEdit(trip, type, item, oldEnd);
       opts.onChange && opts.onChange(trip);

@@ -20,9 +20,10 @@ window.GRForms = (function () {
     flights: {
       icon: "✈",
       singular: "Flight",
-      order: ["date","airline","flightNo","from","to","depTime","arrTime","cabin","bookingRef","cost","notes"],
+      order: ["date","arrDate","airline","flightNo","from","to","depTime","arrTime","cabin","bookingRef","cost","notes"],
       fields: {
-        date: { label: "Date", type: "date" },
+        date: { label: "Departure date", type: "date" },
+        arrDate: { label: "Arrival date (if different)", type: "date" },
         airline: { label: "Airline", type: "text" },
         flightNo: { label: "Flight no.", type: "text" },
         from: { label: "From", type: "text" },
@@ -34,13 +35,18 @@ window.GRForms = (function () {
         cost: { label: "Cost (AUD)", type: "number" },
         notes: { label: "Notes", type: "textarea" },
       },
-      rows: [["date"],["airline","flightNo"],["from","to"],["depTime","arrTime"],["cabin","bookingRef"],["cost"],["notes"]],
-      card(it) {
+      rows: [["date","arrDate"],["airline","flightNo"],["from","to"],["depTime","arrTime"],["cabin","bookingRef"],["cost"],["notes"]],
+      card(it, trip) {
+        const plus = it.arrDate && it.date && it.arrDate !== it.date ? dayDelta(it.date, it.arrDate) : 0;
+        const when = it.date
+          ? `${it.date}${it.depTime ? " " + it.depTime : ""}` +
+            (it.arrTime || plus ? ` → ${plus ? it.arrDate + " " : ""}${it.arrTime || ""}${plus ? ` (${plus > 0 ? "+" : ""}${plus} day${Math.abs(plus) === 1 ? "" : "s"})` : ""}` : "")
+          : "";
         return {
           title: `${esc(it.from || "?")} → ${esc(it.to || "?")}`,
-          d: [it.date, it.depTime && it.arrTime ? it.depTime + "–" + it.arrTime : "", [it.airline, it.flightNo].filter(Boolean).join(" ")].filter(Boolean).join(" · "),
+          d: [when, [it.airline, it.flightNo].filter(Boolean).join(" ")].filter(Boolean).join(" · "),
           meta: it.notes,
-          tags: [it.cabin, money(it.cost) && "AUD " + money(it.cost)].filter(Boolean),
+          tags: [it.cabin, money(it.cost) && "AUD " + money(it.cost), routeChip(it, trip)].filter(Boolean),
         };
       },
     },
@@ -145,6 +151,23 @@ window.GRForms = (function () {
     return s ? s.name : "";
   }
 
+  // Where a flight lands on the map (see route.js): on a route leg, as its own
+  // arc, or not yet — with the place that couldn't be found.
+  function routeChip(f, trip) {
+    if (!window.GRRoute) return "";
+    const r = f.route;
+    if (!Array.isArray(r) || !r.length || !GRRoute.routeIsCurrent(f)) return "🗺 map route pending";
+    const miss = r.filter((p) => !GRRoute.has(p));
+    if (miss.length) return `⚠ not on map — can't place “${miss[0].name}”`;
+    const D = GRRoute.derive(trip);
+    const li = D.legOf[f.id];
+    if (li != null) {
+      const l = (trip.legs || [])[li];
+      return `🗺 ${stopName(trip, l.from) || "?"} → ${stopName(trip, l.to) || "?"} leg`;
+    }
+    return "🗺 own arc (no matching leg)";
+  }
+
   function renderList(key, trip, opts) {
     const spec = SPECS[key];
     const el = document.getElementById(key);
@@ -239,6 +262,7 @@ window.GRForms = (function () {
       if (t.x.checkOut) t.x.checkOut = isoShift(t.x.checkOut, days);
     } else if (t.x.date) {
       t.x.date = isoShift(t.x.date, days);
+      if (t.x.arrDate) t.x.arrDate = isoShift(t.x.arrDate, days);
     }
   }
 
@@ -386,6 +410,77 @@ window.GRForms = (function () {
     return out;
   }
 
+  // ---- map route editor for flights ------------------------------------
+  // One row per place in From / To (origin, connections, destination), filled
+  // automatically from airport codes, trip stops or a place lookup; coordinates
+  // can be corrected by hand.
+  function routeRow(p, idx, total) {
+    const row = document.createElement("div");
+    row.className = "rt-row";
+    const role = idx === 0 ? "From" : idx === total - 1 ? "To" : "Via";
+    const ok = Number.isFinite(p.lat) && Number.isFinite(p.lng);
+    row.innerHTML =
+      `<div class="frow" style="align-items:flex-end;gap:8px">` +
+      `<div class="field" style="flex:2;margin-bottom:6px"><label>${role}</label><input class="r-name" type="text" value="${esc(p.name || "")}" readonly style="background:#f6f2ea" /></div>` +
+      `<div class="field" style="flex:1;margin-bottom:6px"><label>Lat</label><input class="r-lat" type="number" step="any" value="${ok ? esc(p.lat) : ""}" /></div>` +
+      `<div class="field" style="flex:1;margin-bottom:6px"><label>Lng</label><input class="r-lng" type="number" step="any" value="${ok ? esc(p.lng) : ""}" /></div>` +
+      `<button type="button" class="btn ghost sm r-look" style="margin-bottom:6px">Look up</button>` +
+      `</div><div class="r-msg" style="font-size:11px;min-height:14px;margin:-2px 0 6px;color:${ok ? "#5a7d4f" : "#c0392b"}">${ok ? (p.code ? "✓ airport " + esc(p.code) : "✓ located") : "Not found — press Look up or enter coordinates"}</div>`;
+    const look = row.querySelector(".r-look"), msg = row.querySelector(".r-msg");
+    look.addEventListener("click", async () => {
+      look.disabled = true; msg.style.color = "#8a7c6b"; msg.textContent = "Looking up…";
+      try {
+        const hit = await geocodePlace(p.name.replace(/\([^)]*\)/g, "").trim() || p.name);
+        if (hit) {
+          row.querySelector(".r-lat").value = hit.lat; row.querySelector(".r-lng").value = hit.lng;
+          msg.style.color = "#5a7d4f"; msg.textContent = "✓ " + hit.label;
+        } else { msg.style.color = "#c0392b"; msg.textContent = "No match — enter coordinates manually."; }
+      } catch (e) { msg.style.color = "#c0392b"; msg.textContent = "Lookup failed — enter coordinates manually."; }
+      finally { look.disabled = false; }
+    });
+    return row;
+  }
+  function injectRouteEditor(body, trip, data) {
+    const wrap = document.createElement("div");
+    wrap.className = "route-editor";
+    wrap.style.cssText = "border-top:1px solid var(--line);margin-top:6px;padding-top:12px";
+    wrap.innerHTML =
+      `<label style="display:block;font-size:12px;font-weight:600;color:#6b5c48;margin-bottom:4px">Map route</label>` +
+      `<div style="font-size:11.5px;color:#8a7c6b;margin-bottom:10px">Filled in from From / To — airport codes in brackets, e.g. “Sydney (SYD)”, are placed exactly. Write a connection as “Nairobi (NBO) → Masai Mara”. The route map follows these points automatically.</div>` +
+      `<div class="rt-rows"></div>`;
+    body.appendChild(wrap);
+    const rows = wrap.querySelector(".rt-rows");
+    const show = (route) => { rows.innerHTML = ""; route.forEach((p, i) => rows.appendChild(routeRow(p, i, route.length))); };
+    const cur = { from: data.from || "", to: data.to || "" };
+    if (window.GRRoute && GRRoute.routeIsCurrent(data)) show(data.route);
+    let seq = 0;
+    async function rebuild() {
+      if (!window.GRRoute) return;
+      const f = { from: body.querySelector('[data-f="from"]').value, to: body.querySelector('[data-f="to"]').value };
+      const my = ++seq;
+      rows.innerHTML = `<div style="font-size:11.5px;color:#8a7c6b">Locating places…</div>`;
+      const r = await GRRoute.buildRoute(trip, f, true);
+      if (my === seq) show(r);
+    }
+    if (!(window.GRRoute && GRRoute.routeIsCurrent(data))) rebuild();
+    let t = null;
+    ["from", "to"].forEach((k) => body.querySelector(`[data-f="${k}"]`).addEventListener("input", () => {
+      clearTimeout(t); t = setTimeout(rebuild, 700);
+    }));
+  }
+  function collectRoute(body) {
+    const out = [];
+    body.querySelectorAll(".rt-row").forEach((row) => {
+      const o = { name: row.querySelector(".r-name").value };
+      const la = row.querySelector(".r-lat").value, ln = row.querySelector(".r-lng").value;
+      if (la !== "" && ln !== "") { o.lat = Number(la); o.lng = Number(ln); }
+      const code = /\(([A-Z]{3})\)/.exec(o.name);
+      if (code) o.code = code[1];
+      out.push(o);
+    });
+    return out;
+  }
+
   function openEditor(key, trip, itemId, opts) {
     const spec = SPECS[key];
     const modal = document.getElementById("itemModal");
@@ -406,6 +501,24 @@ window.GRForms = (function () {
 
     // legs get an extra dynamic stopover ("via") editor below the standard fields
     if (key === "legs") injectViaEditor(body, data.via || []);
+    if (key === "flights") {
+      injectRouteEditor(body, trip, data);
+      // arrival-date hint: an arrival time earlier than departure usually means next day
+      const hint = document.createElement("div");
+      hint.className = "arr-hint";
+      hint.style.cssText = "font-size:11.5px;color:#b0703a;margin:-6px 0 10px;min-height:0";
+      const ad = body.querySelector('[data-f="arrDate"]');
+      ad.closest(".frow").after(hint);
+      const check = () => {
+        const d = body.querySelector('[data-f="date"]').value, a = ad.value;
+        const dt = body.querySelector('[data-f="depTime"]').value, at = body.querySelector('[data-f="arrTime"]').value;
+        if (d && a && a < d) hint.textContent = "⚠ Arrival date is before the departure date.";
+        else if (d && !a && dt && at && at < dt) hint.textContent = "Arrival time is earlier than departure — if it lands the next day, set the arrival date.";
+        else hint.textContent = "";
+      };
+      ["date", "arrDate", "depTime", "arrTime"].forEach((k) => body.querySelector(`[data-f="${k}"]`).addEventListener("input", check));
+      check();
+    }
 
     const del = document.getElementById("imDelete");
     del.style.display = existing ? "block" : "none";
@@ -424,6 +537,15 @@ window.GRForms = (function () {
         vals[el.getAttribute("data-f")] = v;
       });
       if (key === "legs") vals.via = collectVia(body);
+      if (key === "flights") {
+        if (vals.arrDate && vals.date && vals.arrDate < vals.date) {
+          alert("The arrival date is before the departure date — please check it.");
+          return;
+        }
+        if (vals.arrDate && vals.arrDate === vals.date) vals.arrDate = "";
+        const rt = collectRoute(body);
+        if (rt.length) vals.route = rt;
+      }
       const anchorField = DATED_ANCHOR[key];
       const oldEnd = existing && anchorField ? existing[anchorField] : null;
       if (existing) {

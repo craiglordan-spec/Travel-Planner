@@ -13,6 +13,7 @@ GRAuth.ready(async function () {
     const res = await GRAuth.apiFetch("/api/trips/" + encodeURIComponent(id));
     if (!res.ok) throw new Error("Itinerary not found.");
     const trip = await res.json();
+    try { await GRRoute.ensureRoutes(trip, false); } catch (e) {} // in-memory only
     GRMap.mount(trip, { mode: "present" });
   } catch (e) {
     panel.innerHTML = `<div class="msg">${e.message}</div>`;

@@ -22,9 +22,18 @@ GRAuth.ready(async function () {
   trip.accommodation = trip.accommodation || [];
   trip.activities = trip.activities || [];
 
+  // Flights drive the route map: give each flight its map points (airport codes and
+  // trip stops first — instant — then a place lookup for anything else), saving once.
+  let routesChanged = 0;
+  try { routesChanged = await GRRoute.ensureRoutes(trip, false); } catch (e) {}
   mapApi = GRMap.mount(trip, { mode: "edit" });
 
-  const opts = { onChange: saveTrip, onFocusStop: focusStop };
+  // any change to dated items can change the flight route/labels → refresh the map
+  async function saveFlights(updated) {
+    try { await GRRoute.ensureRoutes(updated, true); } catch (e) {}
+    return saveAndRemount(updated);
+  }
+  const opts = { onChange: saveFlights, onFocusStop: focusStop };
   const stopsOpts = { onChange: saveAndRemount, onFocusStop: focusStop, reorder: true };
   const legsOpts = { onChange: saveAndRemount, onFocusStop: focusStop };
 
@@ -38,6 +47,12 @@ GRAuth.ready(async function () {
     GRForms.renderList("legs", trip, legsOpts);
   }
   renderAll();
+  // background: look up any places the airport table and stops couldn't place, then save
+  (async () => {
+    let n = 0;
+    try { n = await GRRoute.ensureRoutes(trip, true); } catch (e) {}
+    if (routesChanged || n) saveAndRemount(trip);
+  })();
 
   async function persist() {
     const res = await GRAuth.apiFetch("/api/trips/" + id, {
@@ -144,7 +159,10 @@ GRAuth.ready(async function () {
     return n;
   }
   function shiftAllDates(days) {
-    (trip.flights || []).forEach((f) => { if (f.date) f.date = isoShift(f.date, days); });
+    (trip.flights || []).forEach((f) => {
+      if (f.date) f.date = isoShift(f.date, days);
+      if (f.arrDate) f.arrDate = isoShift(f.arrDate, days);
+    });
     (trip.accommodation || []).forEach((a) => {
       if (a.checkIn) a.checkIn = isoShift(a.checkIn, days);
       if (a.checkOut) a.checkOut = isoShift(a.checkOut, days);

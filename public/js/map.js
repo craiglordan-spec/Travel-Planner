@@ -15,41 +15,39 @@ window.GRMap = (function () {
   };
   const colorFor = (t) => COLORS[t] || COLORS.gateway;
 
-  // Build the numbered itinerary sequence: each stop, immediately followed by
-  // the via (stopover) points of any leg departing that stop, in order. This
-  // is the list that gets numbered 1..N and drawn as pins, so a Brisbane →
+  // Build the numbered itinerary sequence by following the legs: each stop,
+  // then the via (stopover) points of the leg leaving it, then the next stop.
+  // This is the list that gets numbered 1..N and drawn as pins, so a Brisbane →
   // (via) Sydney → Johannesburg leg numbers 1‑2‑3.
-  function orderedPoints(trip) {
+  function orderedPoints(trip, legs) {
     const stops = trip.stops || [];
-    const legs = trip.legs || [];
-    const out = [];
-    stops.forEach((s) => {
-      out.push({
-        kind: "stop",
-        id: s.id,
-        name: s.name,
-        lat: s.lat,
-        lng: s.lng,
-        type: s.type,
-        nights: s.nights,
-        highlights: s.highlights,
-        lodge: s.lodge,
-      });
-      legs
-        .filter((l) => l.from === s.id)
-        .forEach((l) => {
-          (l.via || []).forEach((v) => {
-            out.push({
-              kind: "via",
-              name: v.name,
-              lat: v.lat,
-              lng: v.lng,
-              type: "transit",
-              legLabel: l.label,
-            });
-          });
-        });
+    legs = legs || trip.legs || [];
+    const byId = {};
+    stops.forEach((s) => (byId[s.id] = s));
+    const stopPt = (s) => ({
+      kind: "stop", id: s.id, name: s.name, lat: s.lat, lng: s.lng, type: s.type,
+      nights: s.nights, highlights: s.highlights, lodge: s.lodge,
     });
+    const out = [];
+    const seen = new Set();
+    let last = null, lastPt = null;
+    // Follow the legs in order (From → stopovers → To), so a stop visited twice
+    // (e.g. Johannesburg out and back) appears at each visit with the right
+    // stopovers after it. Stops not on any leg are listed after, in stop order.
+    legs.forEach((l) => {
+      const a = byId[l.from], b = byId[l.to];
+      if (!a || !b) return;
+      let fromPt = lastPt;
+      if (last !== a.id) { fromPt = stopPt(a); out.push(fromPt); seen.add(a.id); }
+      fromPt.nextLeg = l; // how you travel on from this point (list hint)
+      (l.via || []).forEach((v) =>
+        out.push({ kind: "via", name: v.name, lat: v.lat, lng: v.lng, type: "transit", legLabel: l.label })
+      );
+      lastPt = stopPt(b);
+      out.push(lastPt); seen.add(b.id);
+      last = b.id;
+    });
+    stops.forEach((s) => { if (!seen.has(s.id)) out.push(stopPt(s)); });
     return out;
   }
 
@@ -78,6 +76,11 @@ window.GRMap = (function () {
     const mapEl = document.getElementById("map");
     const byId = {};
     (trip.stops || []).forEach((s) => (byId[s.id] = s));
+    // Route legs as drawn: legs with matching flights follow the flights' airports
+    // (see route.js); the rest keep their hand-drawn path. Flights that fit no leg
+    // come back as `extras` and are drawn as their own arcs.
+    const derived = window.GRRoute ? GRRoute.derive(trip) : { legs: trip.legs || [], extras: [] };
+    const LEGS = derived.legs;
 
     // ---- panel header ----
     const header = panel.querySelector("header") || panel;
@@ -145,7 +148,7 @@ window.GRMap = (function () {
       L.marker(mid, { icon, interactive: false, keyboard: false }).addTo(map);
     }
     const hasCoord = (s) => s && Number.isFinite(s.lat) && Number.isFinite(s.lng);
-    (trip.legs || []).forEach((l) => {
+    LEGS.forEach((l) => {
       const a = byId[l.from],
         b = byId[l.to];
       if (!hasCoord(a) || !hasCoord(b)) return;
@@ -170,8 +173,26 @@ window.GRMap = (function () {
       legLabel(full, l.label);
     });
 
+    // ---- flights that don't connect two stops: their own lighter arcs ----
+    derived.extras.forEach((x) => {
+      const f = x.flight;
+      let full = [];
+      for (let i = 0; i < x.pts.length - 1; i++) {
+        const seg = arc([x.pts[i].lat, x.pts[i].lng], [x.pts[i + 1].lat, x.pts[i + 1].lng], 0.16);
+        L.polyline(seg, { color: "#fff", weight: 4, opacity: 0.45 }).addTo(map);
+        L.polyline(seg, { color: "#b0703a", weight: 2, opacity: 0.85, dashArray: "2 6" }).addTo(map);
+        full = full.concat(seg);
+      }
+      x.pts.forEach((p) =>
+        L.circleMarker([p.lat, p.lng], { radius: 4.5, color: "#fff", weight: 1.5, fillColor: "#b0703a", fillOpacity: 1 })
+          .addTo(map)
+          .bindTooltip(escapeHtml(p.name), { direction: "top" })
+      );
+      legLabel(full, `${f.from || "?"} → ${f.to || "?"}${x.label ? " · " + x.label : ""}`);
+    });
+
     // numbered itinerary sequence (stops interleaved with stopovers)
-    const points = orderedPoints(trip);
+    const points = orderedPoints(trip, LEGS);
 
     // ---- markers (stops + stopovers, one pin per coordinate) ----
     const markers = {};
@@ -222,7 +243,7 @@ window.GRMap = (function () {
       // "how you get to the next stop" hint — only when the leg has no via
       // points (with stopovers, the numbered via rows already show the route).
       if (p.kind === "stop") {
-        const leg = (trip.legs || []).find((l) => l.from === p.id);
+        const leg = p.nextLeg;
         if (leg && leg.label && !(leg.via && leg.via.length)) {
           const lm = document.createElement("div");
           lm.className = "leg-mode";

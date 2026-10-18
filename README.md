@@ -58,3 +58,19 @@ and set `APP_USERNAME` / `APP_PASSWORD` (and optionally `APP_READ_KEY`).
 ```
 
 `type` is one of `safari`, `beach`, `city`, `gateway` (controls pin colour).
+
+## Flights drive the route map
+
+Each flight has a departure date and an optional **arrival date** (`arrDate`) for
+overnight / date-line flights. Its From / To text is turned into map points
+(`route`): airport codes in brackets — "Sydney (SYD)" — are placed from the
+bundled airport table (`public/vendor/airports.json`, airport data from
+[OpenFlights](https://openflights.org/data.html), ODbL); names matching a trip
+stop use that stop; anything else is looked up with OpenStreetMap Nominatim.
+"Nairobi (NBO) → Masai Mara" is read as a connection. Coordinates can be
+corrected in the flight editor's *Map route* section.
+
+`public/js/route.js` lays the flights onto the route legs in order: a leg whose
+From/To stops match a chain of flights is drawn through those airports with an
+automatic label ("Qantas QF63 · 1–2 Aug"); legs without flights keep their
+hand-drawn path; flights that match no leg are drawn as their own lighter arcs.

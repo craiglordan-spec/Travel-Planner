@@ -24,7 +24,7 @@ window.GRCalendar = (function () {
 
     const dates = [];
     if (trip.startDate) dates.push(trip.startDate);
-    flights.forEach((f) => f.date && dates.push(f.date));
+    flights.forEach((f) => { if (f.date) dates.push(f.date); if (f.arrDate) dates.push(f.arrDate); });
     acts.forEach((a) => a.date && dates.push(a.date));
     accom.forEach((a) => {
       if (a.checkIn) dates.push(a.checkIn);
@@ -54,7 +54,23 @@ window.GRCalendar = (function () {
             cls: "flight",
             badge: f.depTime || "Flight",
             main: `${esc(f.from || "?")} → ${esc(f.to || "?")}`,
-            sub: [f.airline, f.flightNo, f.arrTime ? "arr " + f.arrTime : ""].filter(Boolean).join(" · "),
+            sub: [f.airline, f.flightNo,
+              f.arrDate && f.arrDate !== f.date
+                ? "arr " + (f.arrTime ? f.arrTime + " " : "") + fmt(f.arrDate, { weekday: "short", day: "numeric", month: "short" })
+                : f.arrTime ? "arr " + f.arrTime : ""].filter(Boolean).map(esc).join(" · "),
+            stopId: null,
+          })
+        );
+      // flights landing on a later day also appear on their arrival day
+      flights
+        .filter((f) => f.arrDate && f.arrDate !== f.date && f.arrDate === day)
+        .sort((a, b) => (a.arrTime || "").localeCompare(b.arrTime || ""))
+        .forEach((f) =>
+          events.push({
+            cls: "flight",
+            badge: f.arrTime ? "Arr " + f.arrTime : "Arrive",
+            main: `${esc(f.from || "?")} → ${esc(f.to || "?")}`,
+            sub: esc([f.airline, f.flightNo, f.date ? "departed " + fmt(f.date, { day: "numeric", month: "short" }) : ""].filter(Boolean).join(" · ")),
             stopId: null,
           })
         );

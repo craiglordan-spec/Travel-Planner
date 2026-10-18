@@ -44,6 +44,7 @@
     <div id="map">
       <div class="legend">
         <div class="row"><span class="dash"></span> Flight leg</div>
+        <div class="row"><span class="dash" style="border-top-style:dotted;border-color:#b0703a"></span> Other flight</div>
         <div class="row"><span class="solid"></span> Safari transfer</div>
         <div class="row"><span class="dot" style="background:#5a7d4f"></span> Safari</div>
         <div class="row"><span class="dot" style="background:#7b4b74"></span> Beach</div>
@@ -60,7 +61,7 @@
   <div class="tabpad">
     <div class="tabhead"><div><h2>Stops</h2><div class="sub">Places on the route, in order. Use ↑ ↓ to reorder; each needs latitude &amp; longitude to appear on the map.</div></div><button class="btn" data-add="stops">+ Add stop</button></div>
     <div id="stops" class="items"></div>
-    <div class="tabhead" style="margin-top:28px"><div><h2>Route legs</h2><div class="sub">Connections drawn between stops — flights as dashed arcs, transfers as solid lines.</div></div><button class="btn" data-add="legs">+ Add leg</button></div>
+    <div class="tabhead" style="margin-top:28px"><div><h2>Route legs</h2><div class="sub">Connections drawn between stops — flights as dashed arcs, transfers as solid lines. Where your Flights match a leg, the map follows the flights (airports, connections and label) automatically.</div></div><button class="btn" data-add="legs">+ Add leg</button></div>
     <div id="legs" class="items"></div>
   </div>
 </section>
@@ -145,6 +146,7 @@
 </div>
 
 <script src="/js/auth.js"></script>
+<script src="/js/route.js"></script>
 <script src="/js/map.js"></script>
 <script src="/js/forms.js"></script>
 <script src="/js/calendar.js"></script>
