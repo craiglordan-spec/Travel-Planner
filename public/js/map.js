@@ -96,8 +96,10 @@ window.GRMap = (function () {
     );
 
     const light = L.tileLayer(
-      "https://{s}.basemap.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      { attribution: "&copy; OpenStreetMap &copy; CARTO", subdomains: "abcd", maxZoom: 19 }
+      // CARTO's main host. The a–d.basemap.cartocdn.com subdomains fail to load in some
+      // browsers/networks (the Light background showed as plain grey).
+      "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      { attribution: "&copy; OpenStreetMap contributors &copy; CARTO", maxZoom: 19 }
     );
     const imagery = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
