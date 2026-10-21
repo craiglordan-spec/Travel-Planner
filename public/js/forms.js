@@ -10,6 +10,29 @@ window.GRForms = (function () {
   const money = (v) =>
     v == null || v === "" ? "" : "$" + Number(v).toLocaleString();
 
+  // Web links: only http(s) is ever turned into a link. A bare "example.com" gets https://.
+  function normUrl(u) {
+    u = String(u || "").trim();
+    if (!u) return "";
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(u) && /^[\w-]+(\.[\w-]+)+([/?#].*)?$/.test(u)) u = "https://" + u;
+    return u;
+  }
+  const isWebUrl = (u) => /^https?:\/\/[^\s]+$/i.test(u);
+  const urlHost = (u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
+  // Escape text, then make any http(s) links in it clickable.
+  function linkify(text) {
+    const s = String(text == null ? "" : text);
+    const rx = /\bhttps?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/gi;
+    let out = "", last = 0, m;
+    while ((m = rx.exec(s))) {
+      out += esc(s.slice(last, m.index)) + `<a href="${esc(m[0])}" target="_blank" rel="noopener noreferrer">${esc(m[0])}</a>`;
+      last = m.index + m[0].length;
+    }
+    return out + esc(s.slice(last));
+  }
+  const IDEA_STATUS = ["New", "Shortlisted", "Booked / done", "Not doing"];
+  const shortDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }); };
+
   function nights(ci, co) {
     if (!ci || !co) return null;
     const d = (new Date(co) - new Date(ci)) / 86400000;
@@ -98,6 +121,31 @@ window.GRForms = (function () {
         };
       },
     },
+    ideas: {
+      icon: "💡",
+      singular: "Idea",
+      order: ["title","category","status","url","stopId","notes"],
+      fields: {
+        title: { label: "Idea", type: "text" },
+        category: { label: "Category", type: "select", options: ["Place to visit","Accommodation","Activity","Food & drink","Transport","Tip / info","To book","Other"] },
+        status: { label: "Status", type: "select", options: IDEA_STATUS },
+        url: { label: "Web link", type: "url" },
+        stopId: { label: "Linked stop", type: "stop" },
+        notes: { label: "Notes (links in here are clickable too)", type: "textarea" },
+      },
+      rows: [["title"],["category","status"],["url"],["stopId"],["notes"]],
+      card(it) {
+        const url = normUrl(it.url);
+        return {
+          title: esc(it.title || (url ? urlHost(url) : "Idea")),
+          d: [it.category, it.addedAt ? "added " + shortDate(it.addedAt) : ""].filter(Boolean).join(" · "),
+          meta: it.notes,
+          tags: [it.status || "New"],
+          link: isWebUrl(url) ? url : "",
+          dim: it.status === "Not doing",
+        };
+      },
+    },
     stops: {
       icon: "📍",
       singular: "Stop",
@@ -171,6 +219,12 @@ window.GRForms = (function () {
   // Display order for lists that read best chronologically. Display only — the saved
   // order is untouched. Undated items go last, in the order they were added.
   const LIST_SORT = {
+    // Ideas: still-open ones first (New, Shortlisted), then Booked / done, then Not doing;
+    // newest first within each.
+    ideas: (a, b) => {
+      const r = (x) => { const i = IDEA_STATUS.indexOf(x.status || "New"); return i < 0 ? 0 : i; };
+      return r(a) - r(b) || String(b.addedAt || "").localeCompare(String(a.addedAt || ""));
+    },
     accommodation: (a, b) => {
       const ka = a.checkIn || a.checkOut || "", kb = b.checkIn || b.checkOut || "";
       if (!ka || !kb) return ka ? -1 : kb ? 1 : 0;
@@ -192,7 +246,7 @@ window.GRForms = (function () {
       const c = spec.card(it, trip);
       const linked = it.stopId ? stopName(trip, it.stopId) : "";
       const div = document.createElement("div");
-      div.className = "item";
+      div.className = "item" + (c.dim ? " dim" : "");
       const reorder = opts.reorder
         ? `<button class="btn ghost sm" data-up ${idx === 0 ? "disabled" : ""}>↑</button>` +
           `<button class="btn ghost sm" data-down ${idx === items.length - 1 ? "disabled" : ""}>↓</button>`
@@ -202,7 +256,8 @@ window.GRForms = (function () {
         `<div class="main">` +
         `<div class="t">${c.title}</div>` +
         (c.d ? `<div class="d">${esc(c.d)}</div>` : "") +
-        (c.meta ? `<div class="meta">${esc(c.meta)}</div>` : "") +
+        (c.link ? `<div class="d"><a class="weblink" href="${esc(c.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(urlHost(c.link))}</a></div>` : "") +
+        (c.meta ? `<div class="meta">${linkify(c.meta)}</div>` : "") +
         `<div class="tags">` +
         (c.tags || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("") +
         (linked ? `<span class="chip linkstop" data-stop="${esc(it.stopId)}">📍 ${esc(linked)}</span>` : "") +
@@ -556,6 +611,14 @@ window.GRForms = (function () {
         if (vals.arrDate && vals.arrDate === vals.date) vals.arrDate = "";
         const rt = collectRoute(body);
         if (rt.length) vals.route = rt;
+      }
+      if (key === "ideas") {
+        vals.url = normUrl(vals.url);
+        if (vals.url && !isWebUrl(vals.url)) { alert("The web link should start with http:// or https://"); return; }
+        if (!String(vals.title || "").trim() && !vals.url && !String(vals.notes || "").trim()) { alert("Add the idea, a link or some notes."); return; }
+        if (!String(vals.title || "").trim() && vals.url) vals.title = urlHost(vals.url);
+        if (!vals.status) vals.status = "New";
+        if (!existing) vals.addedAt = new Date().toISOString();
       }
       const anchorField = DATED_ANCHOR[key];
       const oldEnd = existing && anchorField ? existing[anchorField] : null;

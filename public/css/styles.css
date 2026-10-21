@@ -97,7 +97,9 @@ a:hover{text-decoration:underline}
 .item .main{flex:1;min-width:0}
 .item .t{font-weight:700;font-size:14.5px}
 .item .d{font-size:12.5px;color:var(--muted);margin-top:2px}
-.item .meta{font-size:12.5px;color:#5c5040;margin-top:6px;line-height:1.5}
+.item .meta{font-size:12.5px;color:#5c5040;margin-top:6px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.item .meta a,.item a.weblink{color:#9a5b2b;text-decoration:underline;overflow-wrap:anywhere}
+.item.dim{opacity:.55}
 .item .tags{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
 .item .rowbtns{display:flex;gap:6px;flex-shrink:0}
 .linkstop{cursor:pointer}

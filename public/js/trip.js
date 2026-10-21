@@ -21,6 +21,7 @@ GRAuth.ready(async function () {
   trip.flights = trip.flights || [];
   trip.accommodation = trip.accommodation || [];
   trip.activities = trip.activities || [];
+  trip.ideas = trip.ideas || [];
 
   // Flights drive the route map: give each flight its map points (airport codes and
   // trip stops first — instant — then a place lookup for anything else), saving once.
@@ -43,6 +44,7 @@ GRAuth.ready(async function () {
     GRForms.renderList("flights", trip, opts);
     GRForms.renderList("accommodation", trip, opts);
     GRForms.renderList("activities", trip, opts);
+    GRForms.renderList("ideas", trip, opts);
     GRForms.renderList("stops", trip, stopsOpts);
     GRForms.renderList("legs", trip, legsOpts);
   }
