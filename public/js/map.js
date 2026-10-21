@@ -112,14 +112,41 @@ window.GRMap = (function () {
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
       { attribution: "&copy; Esri — terrain & topographic", maxZoom: 19 }
     );
-    satellite.addTo(map);
-    L.control
-      .layers(
-        { "🛰  Satellite (GIS)": satellite, "⛰  Terrain": terrain, "🗺  Light": light },
-        null,
-        { position: "topright", collapsed: false }
-      )
-      .addTo(map);
+    // Roads, towns/cities and country borders on one background.
+    const streets = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors", maxZoom: 19 }
+    );
+    // Overlay for any background: highways, roads, railways and airports (Esri World
+    // Transportation). Railways come from this layer rather than OpenRailwayMap, whose
+    // terms only cover public, login-free sites.
+    const transport = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "Roads &amp; rail &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors", maxZoom: 19 }
+    );
+    const bases = {
+      "🛰  Satellite (GIS)": satellite,
+      "⛰  Terrain": terrain,
+      "🛣  Roads & places": streets,
+      "🗺  Light": light,
+    };
+    const overlays = { "🛣  Roads & rail": transport };
+
+    // Remember this viewer's background and overlays (per browser), so a choice survives
+    // map rebuilds and page reloads. Falls back to Satellite if storage is unavailable.
+    const LAYER_KEY = "gr_tp_layers";
+    let pref = {};
+    try { pref = JSON.parse(localStorage.getItem(LAYER_KEY) || "{}") || {}; } catch (e) { pref = {}; }
+    (bases[pref.base] || satellite).addTo(map);
+    (Array.isArray(pref.overlays) ? pref.overlays : []).forEach((n) => overlays[n] && overlays[n].addTo(map));
+    const savePref = (patch) => {
+      pref = Object.assign({}, pref, patch);
+      try { localStorage.setItem(LAYER_KEY, JSON.stringify(pref)); } catch (e) {}
+    };
+    map.on("baselayerchange", (e) => savePref({ base: e.name }));
+    map.on("overlayadd overlayremove", () =>
+      savePref({ overlays: Object.keys(overlays).filter((n) => map.hasLayer(overlays[n])) }));
+    L.control.layers(bases, overlays, { position: "topright", collapsed: false }).addTo(map);
 
     // ---- park outlines ----
     const parkStyle = {
