@@ -168,10 +168,21 @@ window.GRForms = (function () {
     return "🗺 own arc (no matching leg)";
   }
 
+  // Display order for lists that read best chronologically. Display only — the saved
+  // order is untouched. Undated items go last, in the order they were added.
+  const LIST_SORT = {
+    accommodation: (a, b) => {
+      const ka = a.checkIn || a.checkOut || "", kb = b.checkIn || b.checkOut || "";
+      if (!ka || !kb) return ka ? -1 : kb ? 1 : 0;
+      return ka.localeCompare(kb) || (a.checkOut || "").localeCompare(b.checkOut || "") || String(a.name || "").localeCompare(String(b.name || ""));
+    },
+  };
+
   function renderList(key, trip, opts) {
     const spec = SPECS[key];
     const el = document.getElementById(key);
-    const items = trip[key] || [];
+    const stored = trip[key] || [];
+    const items = LIST_SORT[key] && !opts.reorder ? stored.slice().sort(LIST_SORT[key]) : stored;
     if (!items.length) {
       el.innerHTML = `<div class="emptybox">No ${key} yet. Click “+ Add ${spec.singular.toLowerCase()}” to add one.</div>`;
       return;
