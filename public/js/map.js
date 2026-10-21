@@ -11,6 +11,7 @@ window.GRMap = (function () {
     beach: "#7b4b74",
     city: "#c4622d",
     gateway: "#3d7ea6",
+    attraction: "#17877d", // activities / attractions
     transit: "#59708a", // stopover / via point on a flight leg
   };
   const colorFor = (t) => COLORS[t] || COLORS.gateway;
@@ -265,7 +266,7 @@ window.GRMap = (function () {
       const p = points[i];
       setActive(i);
       if (!p || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
-      map.flyTo([p.lat, p.lng], p.type === "gateway" ? 5 : 7, { duration: 1.1 });
+      map.flyTo([p.lat, p.lng], p.type === "gateway" ? 5 : p.type === "attraction" ? 9 : 7, { duration: 1.1 });
       const m = markers[p.lat + "," + p.lng];
       setTimeout(() => m && m.openPopup(), 700);
     }

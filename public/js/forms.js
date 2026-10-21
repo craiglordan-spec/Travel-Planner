@@ -152,7 +152,7 @@ window.GRForms = (function () {
       order: ["name","type","lat","lng","nights","highlights"],
       fields: {
         name: { label: "Place name", type: "text" },
-        type: { label: "Type (pin colour)", type: "select", options: ["gateway","safari","beach","city"] },
+        type: { label: "Type (pin colour)", type: "select", options: ["gateway","safari","beach","city","attraction"] },
         lat: { label: "Latitude", type: "number" },
         lng: { label: "Longitude", type: "number" },
         nights: { label: "Nights / label", type: "text" },
