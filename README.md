@@ -25,7 +25,7 @@ npm start
 | `DATA_DIR`      | Directory for persisted trip JSON (mount a volume)   | `./data`       |
 | `APP_USERNAME`  | Basic-auth username for the planner                  | `admin`        |
 | `APP_PASSWORD`  | Basic-auth password                                  | `changeme`     |
-| `APP_READ_KEY`  | Optional read-only key for sharing `/present` links  | *(disabled)*   |
+| `BACKUP_KEY`    | Shared GR backup key — enables `/backup-export/*` for the monthly backup (same value as the other GR apps) | *(off)* |
 
 On first boot, any itineraries in `./seed` are copied into `DATA_DIR` if not
 already present, so a fresh deploy starts with content (the Africa 2027 trip).
@@ -34,15 +34,26 @@ already present, so a fresh deploy starts with content (the Africa 2027 trip).
 
 - `/` — trips list (auth)
 - `/trip/:id` — trip route map + editor (auth)
-- `/present?id=:id[&key=READ_KEY]` — client-facing present view (open with key)
+- `/present?id=:id` — client-facing present view (requires the planner sign-in)
 - `/api/trips`, `/api/trips/:id` — JSON API (GET, POST, PUT, DELETE)
+- `/api/trips/:id/files` — attachments (POST raw file with `X-File-Name`; `GET`/`DELETE` `/api/trips/:id/files/:fileId`), token-protected
+
+## Attachments
+
+Flights, stays, activities and ideas can carry files (tickets, confirmations,
+vouchers, screenshots). Files live on the volume at
+`<DATA_DIR>/files/<tripId>/<fileId>__<name>`; the trip JSON keeps only
+`files: [{ id, name, size, type, addedAt }]` on each item. Allowed: PDF, images,
+Office documents, email (.eml/.msg), text/CSV, .ics — up to 25 MB each.
+Removing a file, deleting an item or deleting a trip removes the stored files;
+uploads abandoned in the editor (closed without saving) are removed too.
 - `/healthz` — health check
 
 ## Deploy (Railway)
 
 Push to GitHub `main`; Railway builds with Railpack and auto-deploys. Mount a
 volume at the `DATA_DIR` path (e.g. `/data`) so trips persist across deploys,
-and set `APP_USERNAME` / `APP_PASSWORD` (and optionally `APP_READ_KEY`).
+and set `APP_USERNAME` / `APP_PASSWORD`.
 
 ## Data model (a trip)
 

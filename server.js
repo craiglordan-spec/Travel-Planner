@@ -62,6 +62,11 @@ app.get("/api/me", auth, (req, res) => res.json({ username: req.user.username })
 // ---- health (open) -----------------------------------------------------
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
+// ---- monthly off-site backup (key-protected export of the data volume — trips
+// and attachments). Same module as InvoiceDesk/ExpenseDesk/Pipeline/Scheduler;
+// off unless BACKUP_KEY is set. See backup-export.js.
+require("./backup-export")(app, store.DATA_DIR, "Travel-Planner");
+
 // ---- open static assets (css/js/vendor) --------------------------------
 // These are the app shell only — no trip data. All trip data comes from /api,
 // which requires a valid token. The page shells render the login screen first.
