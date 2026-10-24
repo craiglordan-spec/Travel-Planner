@@ -33,8 +33,8 @@ window.GRForms = (function () {
   const IDEA_STATUS = ["New", "Shortlisted", "Booked / done", "Not doing"];
   const shortDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }); };
 
-  // ---- attachments (flights, stays, activities, ideas) ----------------
-  const ATTACH_KEYS = new Set(["flights", "accommodation", "activities", "ideas"]);
+  // ---- attachments (flights, stays, activities, ideas, route stops + legs) ----
+  const ATTACH_KEYS = new Set(["flights", "accommodation", "activities", "ideas", "stops", "legs"]);
   const INLINE_EXT = new Set(["pdf", "jpg", "jpeg", "png", "gif", "webp", "txt"]);
   const ACCEPT = ".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.eml,.msg,.ics";
   const MAX_MB = 25;
@@ -333,6 +333,13 @@ window.GRForms = (function () {
     },
   };
 
+  function newId(key, items) {
+    let id;
+    do id = key.slice(0, 2) + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+    while (items.some((x) => x && x.id === id));
+    return id;
+  }
+
   function stopName(trip, id) {
     const s = (trip.stops || []).find((x) => x.id === id);
     return s ? s.name : "";
@@ -375,6 +382,9 @@ window.GRForms = (function () {
     const spec = SPECS[key];
     const el = document.getElementById(key);
     const stored = trip[key] || [];
+    // Older items (e.g. seeded route legs) have no id, so Edit couldn't find them and
+    // opened a blank "Add" form instead. Give them one; it's saved with the next change.
+    stored.forEach((it) => { if (it && !it.id) it.id = newId(key, stored); });
     const items = LIST_SORT[key] && !opts.reorder ? stored.slice().sort(LIST_SORT[key]) : stored;
     if (!items.length) {
       el.innerHTML = `<div class="emptybox">No ${key} yet. Click “+ Add ${spec.singular.toLowerCase()}” to add one.</div>`;
@@ -782,10 +792,7 @@ window.GRForms = (function () {
       if (existing) {
         Object.assign(existing, vals);
       } else {
-        vals.id =
-          key === "stops"
-            ? slugId(vals.name, items)
-            : key.slice(0, 2) + "-" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+        vals.id = key === "stops" ? slugId(vals.name, items) : newId(key, items);
         items.push(vals);
       }
       // ripple: if a dated item's anchor moved, offer to flow the change through

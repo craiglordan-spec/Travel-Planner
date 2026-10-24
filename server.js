@@ -106,7 +106,7 @@ app.delete("/api/trips/:id", auth, (req, res) => {
   res.json({ deleted });
 });
 
-// ---- attachments (flights, stays, activities, ideas) — see lib/files.js ----
+// ---- attachments (flights, stays, activities, ideas, stops, legs) — see lib/files.js ----
 const files = require("./lib/files")(app, auth, store.DATA_DIR, store);
 
 // ---- app pages (served openly; the SPA gates them with the login screen) --

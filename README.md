@@ -40,8 +40,8 @@ already present, so a fresh deploy starts with content (the Africa 2027 trip).
 
 ## Attachments
 
-Flights, stays, activities and ideas can carry files (tickets, confirmations,
-vouchers, screenshots). Files live on the volume at
+Flights, stays, activities, ideas, route stops and route legs can carry files
+(tickets, confirmations, vouchers, screenshots, transfer bookings). Files live on the volume at
 `<DATA_DIR>/files/<tripId>/<fileId>__<name>`; the trip JSON keeps only
 `files: [{ id, name, size, type, addedAt }]` on each item. Allowed: PDF, images,
 Office documents, email (.eml/.msg), text/CSV, .ics — up to 25 MB each.
