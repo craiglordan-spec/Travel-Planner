@@ -96,8 +96,13 @@ app.put("/api/trips/:id", auth, (req, res) => {
 });
 
 app.delete("/api/trips/:id", auth, (req, res) => {
-  res.json({ deleted: store.deleteTrip(req.params.id) });
+  const deleted = store.deleteTrip(req.params.id);
+  if (deleted) files.removeTrip(req.params.id);
+  res.json({ deleted });
 });
+
+// ---- attachments (flights, stays, activities, ideas) — see lib/files.js ----
+const files = require("./lib/files")(app, auth, store.DATA_DIR, store);
 
 // ---- app pages (served openly; the SPA gates them with the login screen) --
 app.get("/", (_req, res) =>

@@ -33,6 +33,145 @@ window.GRForms = (function () {
   const IDEA_STATUS = ["New", "Shortlisted", "Booked / done", "Not doing"];
   const shortDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }); };
 
+  // ---- attachments (flights, stays, activities, ideas) ----------------
+  const ATTACH_KEYS = new Set(["flights", "accommodation", "activities", "ideas"]);
+  const INLINE_EXT = new Set(["pdf", "jpg", "jpeg", "png", "gif", "webp", "txt"]);
+  const ACCEPT = ".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.eml,.msg,.ics";
+  const MAX_MB = 25;
+  const extOf = (n) => ((/\.([a-z0-9]+)$/i.exec(n || "") || [])[1] || "").toLowerCase();
+  const fileIcon = (n) => {
+    const e = extOf(n);
+    return e === "pdf" ? "📄" : /^(jpe?g|png|gif|webp|hei[cf])$/.test(e) ? "🖼" : /^(eml|msg)$/.test(e) ? "✉" : "📎";
+  };
+  const fmtSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round((b || 0) / 1024)) + " KB");
+  const fileUrl = (tripId, fid) => `/api/trips/${encodeURIComponent(tripId)}/files/${encodeURIComponent(fid)}`;
+
+  // Open (PDF/images/text, in a new tab) or download (Office, email…) an attachment.
+  // Fetched with the sign-in token, so links can't be opened by anyone else.
+  async function openFile(tripId, f) {
+    const inline = INLINE_EXT.has(extOf(f.name));
+    const w = inline ? window.open("", "_blank") : null; // open now, before the await, so it isn't popup-blocked
+    try {
+      const r = await GRAuth.apiFetch(fileUrl(tripId, f.id));
+      if (!r.ok) throw new Error(r.status === 404 ? "That file is no longer on the server." : "Could not open the file (" + r.status + ").");
+      const url = URL.createObjectURL(await r.blob());
+      if (w) {
+        w.location.href = url;
+      } else {
+        const a = document.createElement("a");
+        a.href = url; a.download = f.name;
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+    } catch (e) {
+      if (w) w.close();
+      alert(e.message);
+    }
+  }
+  function deleteFile(tripId, fid) {
+    return GRAuth.apiFetch(fileUrl(tripId, fid), { method: "DELETE" }).catch(() => {});
+  }
+  async function uploadFile(tripId, file) {
+    const r = await GRAuth.apiFetch(`/api/trips/${encodeURIComponent(tripId)}/files`, {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+      body: file,
+    });
+    let d = {};
+    try { d = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error(d.error || "Upload failed (" + r.status + ")");
+    return d;
+  }
+
+  // Attachments section in the item editor. Uploads happen straight away; the
+  // list is only written to the item when the editor is saved. Returns hooks the
+  // editor calls on save / cancel / delete so nothing is left orphaned.
+  function injectAttachEditor(body, trip, data) {
+    const original = (data.files || []).map((f) => Object.assign({}, f));
+    let list = original.slice();
+    const fresh = new Set(); // uploaded in this editing session
+    let busy = 0;
+
+    const wrap = document.createElement("div");
+    wrap.className = "att-editor";
+    wrap.innerHTML =
+      `<label class="att-label">Attachments</label>` +
+      `<div class="att-rows"></div>` +
+      `<div class="att-drop" tabindex="0">📎 Drop files here or <u>choose files</u>` +
+      `<div class="att-hint">Tickets, confirmations, vouchers, screenshots — PDF, images, Office, email · up to ${MAX_MB} MB each</div></div>` +
+      `<input type="file" class="att-input" multiple accept="${ACCEPT}" hidden />` +
+      `<div class="att-msg"></div>`;
+    body.appendChild(wrap);
+    const rows = wrap.querySelector(".att-rows");
+    const drop = wrap.querySelector(".att-drop");
+    const input = wrap.querySelector(".att-input");
+    const msg = wrap.querySelector(".att-msg");
+
+    function render() {
+      rows.innerHTML = "";
+      list.forEach((f) => {
+        const row = document.createElement("div");
+        row.className = "att-row";
+        row.innerHTML =
+          `<span class="att-name">${fileIcon(f.name)} <a href="#">${esc(f.name)}</a></span>` +
+          `<span class="att-size">${fmtSize(f.size)}</span>` +
+          `<button type="button" class="btn ghost sm" title="Remove">✕</button>`;
+        row.querySelector("a").addEventListener("click", (e) => { e.preventDefault(); openFile(trip.id, f); });
+        row.querySelector("button").addEventListener("click", () => {
+          list = list.filter((x) => x.id !== f.id);
+          if (fresh.has(f.id)) { fresh.delete(f.id); deleteFile(trip.id, f.id); }
+          render();
+        });
+        rows.appendChild(row);
+      });
+    }
+
+    async function addFiles(fileList) {
+      const files = Array.from(fileList || []);
+      for (const file of files) {
+        if (file.size > MAX_MB * 1048576) { msg.className = "att-msg err"; msg.textContent = `${file.name} is over ${MAX_MB} MB.`; continue; }
+        busy++;
+        msg.className = "att-msg"; msg.textContent = `Uploading ${file.name}…`;
+        try {
+          const meta = await uploadFile(trip.id, file);
+          fresh.add(meta.id);
+          list.push(meta);
+          render();
+          msg.textContent = "";
+        } catch (e) {
+          msg.className = "att-msg err"; msg.textContent = `${file.name}: ${e.message}`;
+        } finally {
+          busy--;
+        }
+      }
+    }
+
+    drop.addEventListener("click", () => input.click());
+    drop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
+    input.addEventListener("change", () => { addFiles(input.files); input.value = ""; });
+    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+    render();
+
+    return {
+      busy: () => busy > 0,
+      files: () => list.slice(),
+      // saved: delete the originals the user removed
+      committed() {
+        const keep = new Set(list.map((f) => f.id));
+        original.forEach((f) => { if (!keep.has(f.id)) deleteFile(trip.id, f.id); });
+      },
+      // closed without saving: delete what was uploaded this session
+      cancelled() { fresh.forEach((id) => deleteFile(trip.id, id)); },
+      // item deleted: delete everything
+      removedItem() {
+        original.forEach((f) => deleteFile(trip.id, f.id));
+        fresh.forEach((id) => deleteFile(trip.id, id));
+      },
+    };
+  }
+
   function nights(ci, co) {
     if (!ci || !co) return null;
     const d = (new Date(co) - new Date(ci)) / 86400000;
@@ -258,12 +397,22 @@ window.GRForms = (function () {
         (c.d ? `<div class="d">${esc(c.d)}</div>` : "") +
         (c.link ? `<div class="d"><a class="weblink" href="${esc(c.link)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(urlHost(c.link))}</a></div>` : "") +
         (c.meta ? `<div class="meta">${linkify(c.meta)}</div>` : "") +
+        (ATTACH_KEYS.has(key) && (it.files || []).length
+          ? `<div class="files">` + it.files.map((f) => `<a href="#" data-file="${esc(f.id)}" title="${esc(fmtSize(f.size))}">${fileIcon(f.name)} ${esc(f.name)}</a>`).join("") + `</div>`
+          : "") +
         `<div class="tags">` +
         (c.tags || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("") +
         (linked ? `<span class="chip linkstop" data-stop="${esc(it.stopId)}">📍 ${esc(linked)}</span>` : "") +
         `</div></div>` +
         `<div class="rowbtns">${reorder}<button class="btn ghost sm" data-edit="${esc(it.id)}">Edit</button></div>`;
       div.querySelector("[data-edit]").addEventListener("click", () => openEditor(key, trip, it.id, opts));
+      div.querySelectorAll("[data-file]").forEach((a) =>
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          const f = (it.files || []).find((x) => x.id === a.getAttribute("data-file"));
+          if (f) openFile(trip.id, f);
+        })
+      );
       const ls = div.querySelector(".linkstop");
       if (ls) ls.addEventListener("click", () => opts.onFocusStop && opts.onFocusStop(it.stopId));
       if (opts.reorder) {
@@ -586,12 +735,15 @@ window.GRForms = (function () {
       check();
     }
 
+    const att = ATTACH_KEYS.has(key) ? injectAttachEditor(body, trip, data) : null;
+
     const del = document.getElementById("imDelete");
     del.style.display = existing ? "block" : "none";
 
     modal.classList.add("open");
 
     function close() {
+      if (att) att.cancelled();
       modal.classList.remove("open");
       cleanup();
     }
@@ -602,6 +754,10 @@ window.GRForms = (function () {
         if (el.type === "number") v = v === "" ? null : Number(v);
         vals[el.getAttribute("data-f")] = v;
       });
+      if (att) {
+        if (att.busy()) { alert("Please wait — a file is still uploading."); return; }
+        vals.files = att.files();
+      }
       if (key === "legs") vals.via = collectVia(body);
       if (key === "flights") {
         if (vals.arrDate && vals.date && vals.arrDate < vals.date) {
@@ -615,7 +771,8 @@ window.GRForms = (function () {
       if (key === "ideas") {
         vals.url = normUrl(vals.url);
         if (vals.url && !isWebUrl(vals.url)) { alert("The web link should start with http:// or https://"); return; }
-        if (!String(vals.title || "").trim() && !vals.url && !String(vals.notes || "").trim()) { alert("Add the idea, a link or some notes."); return; }
+        if (!String(vals.title || "").trim() && !vals.url && !String(vals.notes || "").trim() && !(vals.files || []).length) { alert("Add the idea, a link, some notes or a file."); return; }
+        if (!String(vals.title || "").trim() && !vals.url && (vals.files || []).length) vals.title = vals.files[0].name;
         if (!String(vals.title || "").trim() && vals.url) vals.title = urlHost(vals.url);
         if (!vals.status) vals.status = "New";
         if (!existing) vals.addedAt = new Date().toISOString();
@@ -633,11 +790,15 @@ window.GRForms = (function () {
       }
       // ripple: if a dated item's anchor moved, offer to flow the change through
       if (existing && anchorField) rippleAfterEdit(trip, key, existing, oldEnd);
+      if (att) att.committed();
       modal.classList.remove("open");
       cleanup();
       opts.onChange(trip);
     }
     function remove() {
+      const nf = att ? att.files().length : 0;
+      if (nf && !confirm(`Delete this ${spec.singular.toLowerCase()} and its ${nf} attached file${nf === 1 ? "" : "s"}?`)) return;
+      if (att) att.removedItem();
       const i = items.findIndex((x) => x.id === itemId);
       if (i >= 0) items.splice(i, 1);
       modal.classList.remove("open");
