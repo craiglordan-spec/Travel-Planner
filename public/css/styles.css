@@ -119,7 +119,12 @@ a:hover{text-decoration:underline}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--terra2)}
 .field textarea{resize:vertical;min-height:64px}
 .frow{display:flex;gap:12px}
-.frow .field{flex:1}
+.frow .field{flex:1;min-width:0}
+/* iPhone Safari gives date/time inputs a fixed intrinsic width, so a Date + Time row
+   ran past the edge of the editor. Let them shrink to the column like other inputs. */
+.field input{min-width:0;box-sizing:border-box}
+.field input[type="date"],.field input[type="time"]{-webkit-appearance:none;appearance:none;min-height:38px}
+.field input::-webkit-date-and-time-value{text-align:left}
 .danger{background:none;border:none;color:#b23b1e;font-size:13px;font-weight:600;cursor:pointer}
 .danger:hover{text-decoration:underline}
 
