@@ -62,7 +62,13 @@ window.GRGantt = (function () {
     const rowHtml = (label, bars) =>
       `<div class="g-row"><div class="g-label">${label}</div><div class="g-track" style="width:${W}px;${gridBg}">${bars}</div></div>`;
 
-    let rows = "";
+    // Every row carries a sort key so the page reads top-to-bottom in date
+    // order whatever the item type. Same-day ties: a flight with a departure
+    // time sorts by that time; otherwise flights come before check-ins (you
+    // land, then check in) and activities fall mid-day.
+    const items = [];
+    const hhmm = (t, dflt) => (/^\d{1,2}:\d{2}/.test(String(t || "")) ? String(t).padStart(5, "0").slice(0, 5) : dflt);
+    const add = (date, time, rank, html) => items.push({ k: `${date}T${time}|${rank}`, html });
 
     // stays (one row each)
     accom.forEach((a) => {
@@ -74,7 +80,7 @@ window.GRGantt = (function () {
       const bar =
         `<div class="g-bar stay ${click}" data-type="accommodation" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px;width:${w}px" title="${esc(a.name)} · ${esc(a.checkIn)} → ${esc(a.checkOut)}">` +
         `<span class="g-h g-hl"></span>${esc(abbr(a.name, 22))} <span class="g-n">${nights}n</span><span class="g-h g-hr"></span></div>`;
-      rows += rowHtml("🏨 " + esc(abbr(a.name, 16)), bar);
+      add(a.checkIn, "15:00", 1, rowHtml("🏨 " + esc(abbr(a.name, 16)), bar));
     });
 
     // flights — one row each, single-day diamond marker on the date
@@ -88,7 +94,7 @@ window.GRGantt = (function () {
         ? `<div class="g-span" style="position:absolute;top:50%;height:4px;margin-top:-2px;left:${idx(f.date) * DW + DW / 2}px;width:${(idx(f.arrDate) - idx(f.date)) * DW}px;background:rgba(232,132,47,.45);border-radius:2px;pointer-events:none"></div>`
         : "";
       const mark = span + `<div class="g-mark flight" data-type="flights" data-id="${esc(f.id)}" style="left:${left}px" title="${esc((f.from || "?") + " → " + (f.to || "?") + " · " + f.date + (f.depTime ? " " + f.depTime : "") + arr)}"></div>`;
-      rows += rowHtml(`✈ ${esc(abbr(strip(f.from) + " → " + strip(f.to), 22))}`, mark);
+      add(f.date, hhmm(f.depTime, "08:00"), 0, rowHtml(`✈ ${esc(abbr(strip(f.from) + " → " + strip(f.to), 22))}`, mark));
     });
 
     // activities — one row each, single-day marker on the date
@@ -97,8 +103,11 @@ window.GRGantt = (function () {
       const left = idx(a.date) * DW + DW / 2 - 9;
       const click = a.stopId ? "click" : "";
       const mark = `<div class="g-mark act ${click}" data-type="activities" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}"></div>`;
-      rows += rowHtml(`🎟 ${esc(abbr(a.title, 22))}`, mark);
+      add(a.date, hhmm(a.time, "12:00"), 2, rowHtml(`🎟 ${esc(abbr(a.title, 22))}`, mark));
     });
+
+    items.sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0));
+    const rows = items.map((x) => x.html).join("");
 
     el.innerHTML =
       `<div class="g-scroll">` +
