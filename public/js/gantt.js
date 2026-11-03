@@ -25,12 +25,14 @@ window.GRGantt = (function () {
     const el = document.getElementById("gantt");
     const flights = trip.flights || [],
       accom = trip.accommodation || [],
-      acts = trip.activities || [];
+      acts = trip.activities || [],
+      trans = trip.transport || [];
 
     const dates = [];
     if (trip.startDate) dates.push(trip.startDate);
     flights.forEach((f) => { if (f.date) dates.push(f.date); if (f.arrDate) dates.push(f.arrDate); });
     acts.forEach((a) => a.date && dates.push(a.date));
+    trans.forEach((t) => { if (t.pickupDate) dates.push(t.pickupDate); if (t.dropoffDate) dates.push(t.dropoffDate); });
     accom.forEach((a) => {
       if (a.checkIn) dates.push(a.checkIn);
       if (a.checkOut) dates.push(a.checkOut);
@@ -80,7 +82,7 @@ window.GRGantt = (function () {
       const bar =
         `<div class="g-bar stay ${click}" data-type="accommodation" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px;width:${w}px" title="${esc(a.name)} · ${esc(a.checkIn)} → ${esc(a.checkOut)}">` +
         `<span class="g-h g-hl"></span>${esc(abbr(a.name, 22))} <span class="g-n">${nights}n</span><span class="g-h g-hr"></span></div>`;
-      add(a.checkIn, "15:00", 1, rowHtml("🏨 " + esc(abbr(a.name, 16)), bar));
+      add(a.checkIn, "15:00", 2, rowHtml("🏨 " + esc(abbr(a.name, 16)), bar));
     });
 
     // flights — one row each, single-day diamond marker on the date
@@ -97,13 +99,39 @@ window.GRGantt = (function () {
       add(f.date, hhmm(f.depTime, "08:00"), 0, rowHtml(`✈ ${esc(abbr(strip(f.from) + " → " + strip(f.to), 22))}`, mark));
     });
 
+    // ground transport — car hire (multi-day) as a bar like a stay; ferries,
+    // trains and transfers on one day as a marker. Pick-up stop is the link.
+    const tIcon = (k) => (window.GRForms && GRForms.transportIcon ? GRForms.transportIcon(k) : "🚗");
+    trans.forEach((t) => {
+      if (!t.pickupDate) return;
+      const end = t.dropoffDate && t.dropoffDate > t.pickupDate ? t.dropoffDate : t.pickupDate;
+      const kind = t.kind || "Transport";
+      const label = kind === "Car hire"
+        ? (t.provider ? "Car hire · " + t.provider : "Car hire")
+        : `${strip(t.pickupLocation) || kind} → ${strip(t.dropoffLocation) || "?"}`;
+      const tip = `${kind}${t.provider ? " · " + t.provider : ""} · ${t.pickupDate}${t.pickupTime ? " " + t.pickupTime : ""}` +
+        (end !== t.pickupDate ? ` → ${end}${t.dropoffTime ? " " + t.dropoffTime : ""}` : t.dropoffTime ? ` → ${t.dropoffTime}` : "") +
+        (t.pickupLocation || t.dropoffLocation ? ` · ${t.pickupLocation || "?"} → ${t.dropoffLocation || "?"}` : "");
+      const click = t.stopId ? "click" : "";
+      const stopAttr = t.stopId ? `data-stop="${esc(t.stopId)}"` : "";
+      let html;
+      if (end > t.pickupDate) {
+        const n = idx(end) - idx(t.pickupDate) + 1;
+        html = `<div class="g-bar trans ${click}" data-type="transport" data-id="${esc(t.id)}" ${stopAttr} style="left:${idx(t.pickupDate) * DW}px;width:${n * DW}px" title="${esc(tip)}">` +
+          `<span class="g-h g-hl"></span>${esc(abbr(label, 22))} <span class="g-n">${n}d</span><span class="g-h g-hr"></span></div>`;
+      } else {
+        html = `<div class="g-mark trans ${click}" data-type="transport" data-id="${esc(t.id)}" ${stopAttr} style="left:${idx(t.pickupDate) * DW + DW / 2 - 9}px" title="${esc(tip)}"></div>`;
+      }
+      add(t.pickupDate, hhmm(t.pickupTime, "10:00"), 1, rowHtml(`${tIcon(kind)} ${esc(abbr(label, 22))}`, html));
+    });
+
     // activities — one row each, single-day marker on the date
     acts.forEach((a) => {
       if (!a.date) return;
       const left = idx(a.date) * DW + DW / 2 - 9;
       const click = a.stopId ? "click" : "";
       const mark = `<div class="g-mark act ${click}" data-type="activities" data-id="${esc(a.id)}" ${a.stopId ? `data-stop="${esc(a.stopId)}"` : ""} style="left:${left}px" title="${esc((a.title || "") + " · " + a.date + (a.time ? " " + a.time : ""))}"></div>`;
-      add(a.date, hhmm(a.time, "12:00"), 2, rowHtml(`🎟 ${esc(abbr(a.title, 22))}`, mark));
+      add(a.date, hhmm(a.time, "12:00"), 3, rowHtml(`🎟 ${esc(abbr(a.title, 22))}`, mark));
     });
 
     items.sort((x, y) => (x.k < y.k ? -1 : x.k > y.k ? 1 : 0));
@@ -120,8 +148,22 @@ window.GRGantt = (function () {
       const arr = trip[type] || [];
       const item = arr.find((x) => x.id === id);
       if (!item) return render(trip, opts);
-      const oldEnd = type === "accommodation" ? item.checkOut : item.date;
-      if (type === "accommodation") {
+      const oldEnd = type === "accommodation" ? item.checkOut : type === "transport" ? item.dropoffDate || item.pickupDate : item.date;
+      if (type === "transport") {
+        if (!item.dropoffDate) item.dropoffDate = item.pickupDate;
+        if (mode === "move") {
+          item.pickupDate = isoShift(item.pickupDate, delta);
+          item.dropoffDate = isoShift(item.dropoffDate, delta);
+        } else if (mode === "right") {
+          let d = isoShift(item.dropoffDate, delta);
+          if (toUTC(d) < toUTC(item.pickupDate)) d = item.pickupDate;
+          item.dropoffDate = d;
+        } else if (mode === "left") {
+          let d = isoShift(item.pickupDate, delta);
+          if (toUTC(d) > toUTC(item.dropoffDate)) d = item.dropoffDate;
+          item.pickupDate = d;
+        }
+      } else if (type === "accommodation") {
         if (mode === "move") {
           item.checkIn = isoShift(item.checkIn, delta);
           item.checkOut = isoShift(item.checkOut, delta);
@@ -186,6 +228,15 @@ window.GRGantt = (function () {
       const hr = bar.querySelector(".g-hr");
       if (hl) attachDrag(hl, { type: "accommodation", id, mode: "left" });
       if (hr) attachDrag(hr, { type: "accommodation", id, mode: "right" });
+    });
+    el.querySelectorAll(".g-bar.trans").forEach((bar) => {
+      const id = bar.dataset.id,
+        stopId = bar.dataset.stop || "";
+      attachDrag(bar, { type: "transport", id, mode: "move", stopId });
+      const hl = bar.querySelector(".g-hl");
+      const hr = bar.querySelector(".g-hr");
+      if (hl) attachDrag(hl, { type: "transport", id, mode: "left" });
+      if (hr) attachDrag(hr, { type: "transport", id, mode: "right" });
     });
     el.querySelectorAll(".g-mark").forEach((mk) => {
       attachDrag(mk, { type: mk.dataset.type, id: mk.dataset.id, mode: "move", stopId: mk.dataset.stop || "" });

@@ -34,7 +34,7 @@ window.GRForms = (function () {
   const shortDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }); };
 
   // ---- attachments (flights, stays, activities, ideas, route stops + legs) ----
-  const ATTACH_KEYS = new Set(["flights", "accommodation", "activities", "ideas", "stops", "legs"]);
+  const ATTACH_KEYS = new Set(["flights", "accommodation", "transport", "activities", "ideas", "stops", "legs"]);
   const INLINE_EXT = new Set(["pdf", "jpg", "jpeg", "png", "gif", "webp", "txt"]);
   const ACCEPT = ".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.eml,.msg,.ics";
   const MAX_MB = 25;
@@ -178,6 +178,9 @@ window.GRForms = (function () {
     return isFinite(d) ? Math.round(d) : null;
   }
 
+  const TRANSPORT_KINDS = ["Car hire", "Ferry", "Train", "Bus / coach", "Transfer", "Other"];
+  const transportIcon = (k) => ({ "Car hire": "🚗", Ferry: "⛴", Train: "🚆", "Bus / coach": "🚌", Transfer: "🚐" }[k] || "🚙");
+
   const SPECS = {
     flights: {
       icon: "✈",
@@ -234,6 +237,48 @@ window.GRForms = (function () {
           d: [it.checkIn && it.checkOut ? it.checkIn + " → " + it.checkOut : "", n != null ? n + " night" + (n === 1 ? "" : "s") : ""].filter(Boolean).join(" · "),
           meta: it.notes,
           tags: [it.roomType, money(it.cost) && "AUD " + money(it.cost)].filter(Boolean),
+        };
+      },
+    },
+    // Ground transport: car hire, ferries, trains, coaches, transfers. A car hire
+    // spans pick-up → drop-off; a ferry/train is usually a same-day trip.
+    transport: {
+      icon: "🚗",
+      singular: "Transport",
+      order: ["kind","provider","pickupDate","pickupTime","pickupLocation","stopId","dropoffDate","dropoffTime","dropoffLocation","dropStopId","vehicle","insurance","bookingRef","cost","notes"],
+      fields: {
+        kind: { label: "Type", type: "select", options: TRANSPORT_KINDS },
+        provider: { label: "Provider (e.g. Hertz, Blue Star Ferries)", type: "text" },
+        pickupDate: { label: "Pick-up / departure date", type: "date" },
+        pickupTime: { label: "Time", type: "time" },
+        pickupLocation: { label: "Pick-up / from", type: "text" },
+        stopId: { label: "Linked stop (pick-up)", type: "stop" },
+        dropoffDate: { label: "Drop-off / arrival date", type: "date" },
+        dropoffTime: { label: "Time", type: "time" },
+        dropoffLocation: { label: "Drop-off / to", type: "text" },
+        dropStopId: { label: "Linked stop (drop-off)", type: "stop" },
+        vehicle: { label: "Vehicle class / seat or cabin", type: "text" },
+        insurance: { label: "Insurance / excess (car hire)", type: "text" },
+        bookingRef: { label: "Booking ref", type: "text" },
+        cost: { label: "Cost (AUD)", type: "number" },
+        notes: { label: "Notes", type: "textarea" },
+      },
+      rows: [["kind","provider"],["pickupDate","pickupTime"],["pickupLocation","stopId"],["dropoffDate","dropoffTime"],["dropoffLocation","dropStopId"],["vehicle","insurance"],["bookingRef","cost"],["notes"]],
+      card(it) {
+        const kind = it.kind || "Transport";
+        const multi = it.dropoffDate && it.pickupDate && it.dropoffDate !== it.pickupDate;
+        const days = multi ? dayDelta(it.pickupDate, it.dropoffDate) + 1 : 0;
+        const at = (d, t, l) => [d, t, l].filter(Boolean).join(" ");
+        const route = it.pickupLocation || it.dropoffLocation
+          ? `${it.pickupLocation || "?"} → ${it.dropoffLocation || it.pickupLocation || "?"}` : "";
+        return {
+          title: `${transportIcon(kind)} ${esc(kind)}${it.provider ? " · " + esc(it.provider) : ""}`,
+          d: [multi
+              ? `${at(it.pickupDate, it.pickupTime)} → ${at(it.dropoffDate, it.dropoffTime)} · ${days} day${days === 1 ? "" : "s"}`
+              : at(it.pickupDate, it.pickupTime) + (it.dropoffTime ? " → " + it.dropoffTime : ""),
+            route].filter(Boolean).join(" · "),
+          meta: [it.insurance ? "Insurance / excess: " + it.insurance : "", it.notes || ""].filter(Boolean).join("\n"),
+          tags: [it.vehicle, it.bookingRef && "Ref " + it.bookingRef, money(it.cost) && "AUD " + money(it.cost)].filter(Boolean),
         };
       },
     },
@@ -371,6 +416,11 @@ window.GRForms = (function () {
       const r = (x) => { const i = IDEA_STATUS.indexOf(x.status || "New"); return i < 0 ? 0 : i; };
       return r(a) - r(b) || String(b.addedAt || "").localeCompare(String(a.addedAt || ""));
     },
+    transport: (a, b) => {
+      const ka = a.pickupDate ? a.pickupDate + (a.pickupTime || "") : "", kb = b.pickupDate ? b.pickupDate + (b.pickupTime || "") : "";
+      if (!ka || !kb) return ka ? -1 : kb ? 1 : 0;
+      return ka.localeCompare(kb);
+    },
     accommodation: (a, b) => {
       const ka = a.checkIn || a.checkOut || "", kb = b.checkIn || b.checkOut || "";
       if (!ka || !kb) return ka ? -1 : kb ? 1 : 0;
@@ -452,7 +502,7 @@ window.GRForms = (function () {
   // ---- date ripple ("flow-through") shared by all dated collections ----
   // The "anchor" is the item's effective end date: check-out for a stay, the
   // date for a flight or activity. Moving it offers to shift everything after.
-  const DATED_ANCHOR = { flights: "date", activities: "date", accommodation: "checkOut" };
+  const DATED_ANCHOR = { flights: "date", activities: "date", accommodation: "checkOut", transport: "dropoffDate" };
   function isoShift(iso, days) {
     if (!iso) return iso;
     const p = iso.split("-").map(Number);
@@ -469,9 +519,11 @@ window.GRForms = (function () {
     (trip.flights || []).forEach((x) => out.push({ x, type: "flights" }));
     (trip.accommodation || []).forEach((x) => out.push({ x, type: "accommodation" }));
     (trip.activities || []).forEach((x) => out.push({ x, type: "activities" }));
+    (trip.transport || []).forEach((x) => out.push({ x, type: "transport" }));
     return out;
   }
-  const anchorOf = (type, x) => (type === "accommodation" ? x.checkOut : x.date);
+  const anchorOf = (type, x) =>
+    type === "accommodation" ? x.checkOut : type === "transport" ? x.dropoffDate || x.pickupDate : x.date;
   function downstreamItems(trip, editedItem, oldEnd) {
     const res = [];
     allDated(trip).forEach((t) => {
@@ -482,7 +534,10 @@ window.GRForms = (function () {
     return res;
   }
   function shiftItem(t, days) {
-    if (t.type === "accommodation") {
+    if (t.type === "transport") {
+      if (t.x.pickupDate) t.x.pickupDate = isoShift(t.x.pickupDate, days);
+      if (t.x.dropoffDate) t.x.dropoffDate = isoShift(t.x.dropoffDate, days);
+    } else if (t.type === "accommodation") {
       if (t.x.checkIn) t.x.checkIn = isoShift(t.x.checkIn, days);
       if (t.x.checkOut) t.x.checkOut = isoShift(t.x.checkOut, days);
     } else if (t.x.date) {
@@ -778,6 +833,15 @@ window.GRForms = (function () {
         const rt = collectRoute(body);
         if (rt.length) vals.route = rt;
       }
+      if (key === "transport") {
+        if (!vals.pickupDate && vals.dropoffDate) vals.pickupDate = vals.dropoffDate;
+        if (vals.pickupDate && !vals.dropoffDate) vals.dropoffDate = vals.pickupDate; // same-day trip
+        if (vals.pickupDate && vals.dropoffDate < vals.pickupDate) {
+          alert("The drop-off / arrival date is before the pick-up date — please check it.");
+          return;
+        }
+        if (!vals.kind) vals.kind = "Car hire";
+      }
       if (key === "ideas") {
         vals.url = normUrl(vals.url);
         if (vals.url && !isWebUrl(vals.url)) { alert("The web link should start with http:// or https://"); return; }
@@ -824,5 +888,5 @@ window.GRForms = (function () {
     }
   }
 
-  return { SPECS, renderList, openEditor, rippleAfterEdit };
+  return { SPECS, renderList, openEditor, rippleAfterEdit, transportIcon };
 })();

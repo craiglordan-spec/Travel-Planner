@@ -27,6 +27,7 @@
   <button data-tab="timeline">📊 Timeline</button>
   <button data-tab="flights">✈ Flights</button>
   <button data-tab="accommodation">🏨 Accommodation</button>
+  <button data-tab="transport">🚗 Transport</button>
   <button data-tab="activities">🎟 Activities</button>
   <button data-tab="ideas">💡 Ideas</button>
 </nav>
@@ -80,7 +81,7 @@
 <!-- TIMELINE (gantt) -->
 <section id="tab-timeline" class="tabview">
   <div class="tabpad" style="max-width:none">
-    <div class="tabhead"><div><h2>Timeline</h2><div class="sub">Gantt view — stays as bars, flights and activities as markers across the dates. Click a linked bar to jump to it on the map.</div></div></div>
+    <div class="tabhead"><div><h2>Timeline</h2><div class="sub">Gantt view — stays and car hire as bars; flights, ferries, transfers and activities as markers, in date order. Click a linked bar to jump to it on the map.</div></div></div>
     <div id="gantt"></div>
   </div>
 </section>
@@ -98,6 +99,14 @@
   <div class="tabpad">
     <div class="tabhead"><div><h2>Accommodation</h2><div class="sub">Lodges, camps and hotels with check-in / check-out.</div></div><button class="btn" data-add="accommodation">+ Add stay</button></div>
     <div id="accommodation" class="items"></div>
+  </div>
+</section>
+
+<!-- GROUND TRANSPORT -->
+<section id="tab-transport" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Ground transport</h2><div class="sub">Car hire, ferries, trains, coaches and transfers — pick-up and drop-off, provider and booking details.</div></div><button class="btn" data-add="transport">+ Add transport</button></div>
+    <div id="transport" class="items"></div>
   </div>
 </section>
 

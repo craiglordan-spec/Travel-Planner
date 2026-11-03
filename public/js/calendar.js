@@ -21,11 +21,13 @@ window.GRCalendar = (function () {
     const flights = trip.flights || [];
     const accom = trip.accommodation || [];
     const acts = trip.activities || [];
+    const trans = trip.transport || [];
 
     const dates = [];
     if (trip.startDate) dates.push(trip.startDate);
     flights.forEach((f) => { if (f.date) dates.push(f.date); if (f.arrDate) dates.push(f.arrDate); });
     acts.forEach((a) => a.date && dates.push(a.date));
+    trans.forEach((t) => { if (t.pickupDate) dates.push(t.pickupDate); if (t.dropoffDate) dates.push(t.dropoffDate); });
     accom.forEach((a) => {
       if (a.checkIn) dates.push(a.checkIn);
       if (a.checkOut) dates.push(a.checkOut);
@@ -88,6 +90,35 @@ window.GRCalendar = (function () {
           sub: a.roomType ? esc(a.roomType) : "",
           stopId: a.stopId || null,
         });
+      });
+
+      // ground transport: pick-up / departure, and drop-off on a later day
+      trans.forEach((t) => {
+        if (!t.pickupDate) return;
+        const kind = t.kind || "Transport";
+        const car = kind === "Car hire";
+        const multi = t.dropoffDate && t.dropoffDate > t.pickupDate;
+        const name = esc(kind + (t.provider ? " · " + t.provider : ""));
+        if (t.pickupDate === day) {
+          events.push({
+            cls: "trans",
+            badge: (car ? "Pick-up" : "Depart") + (t.pickupTime ? " " + t.pickupTime : ""),
+            main: name,
+            sub: esc([t.pickupLocation && (multi || !t.dropoffLocation ? t.pickupLocation : t.pickupLocation + " → " + t.dropoffLocation),
+              !multi && t.dropoffTime ? "arr " + t.dropoffTime : "", t.vehicle].filter(Boolean).join(" · ")),
+            stopId: t.stopId || null,
+          });
+        } else if (multi && t.dropoffDate === day) {
+          events.push({
+            cls: "trans",
+            badge: (car ? "Drop-off" : "Arrive") + (t.dropoffTime ? " " + t.dropoffTime : ""),
+            main: name,
+            sub: esc(t.dropoffLocation || ""),
+            stopId: t.dropStopId || t.stopId || null,
+          });
+        } else if (multi && car && day > t.pickupDate && day < t.dropoffDate) {
+          events.push({ cls: "trans", badge: "Car", main: name, sub: "", stopId: null });
+        }
       });
 
       acts

@@ -21,6 +21,7 @@ GRAuth.ready(async function () {
   trip.flights = trip.flights || [];
   trip.accommodation = trip.accommodation || [];
   trip.activities = trip.activities || [];
+  trip.transport = trip.transport || [];
   trip.ideas = trip.ideas || [];
 
   // Flights drive the route map: give each flight its map points (airport codes and
@@ -43,6 +44,7 @@ GRAuth.ready(async function () {
     GRGantt.render(trip, opts);
     GRForms.renderList("flights", trip, opts);
     GRForms.renderList("accommodation", trip, opts);
+    GRForms.renderList("transport", trip, opts);
     GRForms.renderList("activities", trip, opts);
     GRForms.renderList("ideas", trip, opts);
     GRForms.renderList("stops", trip, stopsOpts);
@@ -158,6 +160,7 @@ GRAuth.ready(async function () {
     (trip.flights || []).forEach((f) => f.date && n++);
     (trip.accommodation || []).forEach((a) => (a.checkIn || a.checkOut) && n++);
     (trip.activities || []).forEach((a) => a.date && n++);
+    (trip.transport || []).forEach((t) => t.pickupDate && n++);
     return n;
   }
   function shiftAllDates(days) {
@@ -170,6 +173,10 @@ GRAuth.ready(async function () {
       if (a.checkOut) a.checkOut = isoShift(a.checkOut, days);
     });
     (trip.activities || []).forEach((a) => { if (a.date) a.date = isoShift(a.date, days); });
+    (trip.transport || []).forEach((t) => {
+      if (t.pickupDate) t.pickupDate = isoShift(t.pickupDate, days);
+      if (t.dropoffDate) t.dropoffDate = isoShift(t.dropoffDate, days);
+    });
   }
 
   const sm = document.getElementById("settingsModal");
@@ -182,7 +189,7 @@ GRAuth.ready(async function () {
     document.getElementById("st-budget").value = trip.budget || "";
     const n = countDated();
     document.getElementById("st-note").textContent = n
-      ? `Tip: changing the start date will offer to shift all ${n} dated items (flights, stays, activities) by the same number of days, so the whole schedule moves together.`
+      ? `Tip: changing the start date will offer to shift all ${n} dated items (flights, stays, transport, activities) by the same number of days, so the whole schedule moves together.`
       : "";
     sm.classList.add("open");
   });

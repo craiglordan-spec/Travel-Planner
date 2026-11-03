@@ -144,6 +144,7 @@ a:hover{text-decoration:underline}
 .ev .badge.flight{background:#c4622d}
 .ev .badge.stay{background:#7b4b74}
 .ev .badge.act{background:#5a7d4f}
+.ev .badge.trans{background:#2f6f8f}
 .ev .txt{font-size:13px;line-height:1.45}
 .ev .txt .sub{color:var(--muted);font-size:12px}
 
@@ -165,6 +166,7 @@ a:hover{text-decoration:underline}
 .g-bar{position:absolute;top:5px;height:24px;border-radius:6px;display:flex;align-items:center;gap:6px;padding:0 8px;font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.22);cursor:grab;touch-action:none;user-select:none}
 .g-bar:active{cursor:grabbing}
 .g-bar.stay{background:#7b4b74}
+.g-bar.trans{background:#2f6f8f}
 .g-bar .g-n{opacity:.82;font-weight:700}
 .g-h{position:absolute;top:0;bottom:0;width:9px;cursor:col-resize;background:rgba(255,255,255,.001)}
 .g-hl{left:0}
@@ -173,6 +175,7 @@ a:hover{text-decoration:underline}
 .g-mark:active{cursor:grabbing}
 .g-mark.flight{background:#c4622d;border-radius:4px;transform:rotate(45deg)}
 .g-mark.act{background:#5a7d4f;border-radius:50%}
+.g-mark.trans{background:#2f6f8f;border-radius:3px}
 
 @media(max-width:760px){
   #app{flex-direction:column}
