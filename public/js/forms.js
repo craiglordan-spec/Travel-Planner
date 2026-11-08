@@ -305,6 +305,28 @@ window.GRForms = (function () {
         };
       },
     },
+    // Daily notes: free text against a date — printed in the planner's Notes row and
+    // shown on the Calendar. Several notes on one day are fine.
+    dayNotes: {
+      icon: "📝",
+      singular: "Daily note",
+      empty: "No daily notes yet. Click “+ Add note” (or “+ note” on a Calendar day) to add one.",
+      order: ["date","note"],
+      fields: {
+        date: { label: "Date", type: "date" },
+        note: { label: "Note (shows in the Notes row of the printed planner)", type: "textarea" },
+      },
+      rows: [["date"],["note"]],
+      card(it, trip) {
+        const n = tripDay(trip, it.date);
+        return {
+          title: esc(it.date ? longDay(it.date) : "No date"),
+          d: n ? "Day " + n : "",
+          meta: it.note,
+          tags: [],
+        };
+      },
+    },
     ideas: {
       icon: "💡",
       singular: "Idea",
@@ -385,6 +407,18 @@ window.GRForms = (function () {
     return id;
   }
 
+  // "Tue 2 Jun 2026" and the trip-day number (Day 1 = trip start date) for a YYYY-MM-DD.
+  function longDay(d) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d || "")) return d || "";
+    const t = Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+    return new Date(t).toLocaleDateString("en-AU", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  }
+  function tripDay(trip, d) {
+    if (!trip.startDate || !d) return 0;
+    const n = dayDelta(trip.startDate, d) + 1;
+    return n >= 1 ? n : 0;
+  }
+
   function stopName(trip, id) {
     const s = (trip.stops || []).find((x) => x.id === id);
     return s ? s.name : "";
@@ -410,6 +444,10 @@ window.GRForms = (function () {
   // Display order for lists that read best chronologically. Display only — the saved
   // order is untouched. Undated items go last, in the order they were added.
   const LIST_SORT = {
+    dayNotes: (a, b) => {
+      if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : 0;
+      return a.date.localeCompare(b.date);
+    },
     // Ideas: still-open ones first (New, Shortlisted), then Booked / done, then Not doing;
     // newest first within each.
     ideas: (a, b) => {
@@ -437,7 +475,7 @@ window.GRForms = (function () {
     stored.forEach((it) => { if (it && !it.id) it.id = newId(key, stored); });
     const items = LIST_SORT[key] && !opts.reorder ? stored.slice().sort(LIST_SORT[key]) : stored;
     if (!items.length) {
-      el.innerHTML = `<div class="emptybox">No ${key} yet. Click “+ Add ${spec.singular.toLowerCase()}” to add one.</div>`;
+      el.innerHTML = `<div class="emptybox">${spec.empty || `No ${key} yet. Click “+ Add ${spec.singular.toLowerCase()}” to add one.`}</div>`;
       return;
     }
     el.innerHTML = "";
@@ -767,7 +805,7 @@ window.GRForms = (function () {
     const body = document.getElementById("imBody");
     const items = trip[key] || (trip[key] = []);
     const existing = itemId ? items.find((x) => x.id === itemId) : null;
-    const data = existing || {};
+    const data = existing || (opts && opts.prefill) || {};
 
     document.getElementById("imTitle").textContent =
       (existing ? "Edit " : "Add ") + spec.singular.toLowerCase();
@@ -841,6 +879,10 @@ window.GRForms = (function () {
           return;
         }
         if (!vals.kind) vals.kind = "Car hire";
+      }
+      if (key === "dayNotes") {
+        if (!vals.date) { alert("Pick the date for this note."); return; }
+        if (!String(vals.note || "").trim()) { alert("Type the note first."); return; }
       }
       if (key === "ideas") {
         vals.url = normUrl(vals.url);

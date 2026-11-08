@@ -14,6 +14,7 @@
   <div class="actions">
     <button class="btn ghost sm" id="settings">⚙ Trip settings</button>
     <button class="btn ghost sm" id="present">Present link</button>
+    <button class="btn ghost sm" id="printPdf" title="Week-by-week planner, A4 landscape PDF">🖨 Print (PDF)</button>
     <button class="btn ghost sm" id="editJson">Advanced (JSON)</button>
     <a class="btn ghost sm" href="/">All trips</a>
     <button class="btn ghost sm" id="signout">Sign out</button>
@@ -29,6 +30,7 @@
   <button data-tab="accommodation">🏨 Accommodation</button>
   <button data-tab="transport">🚗 Transport</button>
   <button data-tab="activities">🎟 Activities</button>
+  <button data-tab="dayNotes">📝 Daily notes</button>
   <button data-tab="ideas">💡 Ideas</button>
 </nav>
 
@@ -115,6 +117,14 @@
   <div class="tabpad">
     <div class="tabhead"><div><h2>Activities</h2><div class="sub">Tours, game drives, excursions and experiences.</div></div><button class="btn" data-add="activities">+ Add activity</button></div>
     <div id="activities" class="items"></div>
+  </div>
+</section>
+
+<!-- DAILY NOTES -->
+<section id="tab-dayNotes" class="tabview">
+  <div class="tabpad">
+    <div class="tabhead"><div><h2>Daily notes</h2><div class="sub">Reminders and notes against a date — payments due, things to confirm, what's planned. They print in the Notes row of the planner PDF and show on the Calendar.</div></div><button class="btn" data-add="dayNotes">+ Add note</button></div>
+    <div id="dayNotes" class="items"></div>
   </div>
 </section>
 

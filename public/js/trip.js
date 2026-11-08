@@ -23,6 +23,7 @@ GRAuth.ready(async function () {
   trip.activities = trip.activities || [];
   trip.transport = trip.transport || [];
   trip.ideas = trip.ideas || [];
+  trip.dayNotes = trip.dayNotes || [];
 
   // Flights drive the route map: give each flight its map points (airport codes and
   // trip stops first — instant — then a place lookup for anything else), saving once.
@@ -47,6 +48,7 @@ GRAuth.ready(async function () {
     GRForms.renderList("transport", trip, opts);
     GRForms.renderList("activities", trip, opts);
     GRForms.renderList("ideas", trip, opts);
+    GRForms.renderList("dayNotes", trip, opts);
     GRForms.renderList("stops", trip, stopsOpts);
     GRForms.renderList("legs", trip, legsOpts);
   }
@@ -161,6 +163,7 @@ GRAuth.ready(async function () {
     (trip.accommodation || []).forEach((a) => (a.checkIn || a.checkOut) && n++);
     (trip.activities || []).forEach((a) => a.date && n++);
     (trip.transport || []).forEach((t) => t.pickupDate && n++);
+    (trip.dayNotes || []).forEach((x) => x.date && n++);
     return n;
   }
   function shiftAllDates(days) {
@@ -177,6 +180,7 @@ GRAuth.ready(async function () {
       if (t.pickupDate) t.pickupDate = isoShift(t.pickupDate, days);
       if (t.dropoffDate) t.dropoffDate = isoShift(t.dropoffDate, days);
     });
+    (trip.dayNotes || []).forEach((x) => { if (x.date) x.date = isoShift(x.date, days); });
   }
 
   const sm = document.getElementById("settingsModal");
@@ -189,7 +193,7 @@ GRAuth.ready(async function () {
     document.getElementById("st-budget").value = trip.budget || "";
     const n = countDated();
     document.getElementById("st-note").textContent = n
-      ? `Tip: changing the start date will offer to shift all ${n} dated items (flights, stays, transport, activities) by the same number of days, so the whole schedule moves together.`
+      ? `Tip: changing the start date will offer to shift all ${n} dated items (flights, stays, transport, activities, daily notes) by the same number of days, so the whole schedule moves together.`
       : "";
     sm.classList.add("open");
   });
@@ -238,6 +242,22 @@ GRAuth.ready(async function () {
         () => prompt("Present link:", url)
       );
     else prompt("Present link:", url);
+  });
+
+  // ---- printable planner (A4 PDF built on the server from the saved trip) ----
+  document.getElementById("printPdf").addEventListener("click", async () => {
+    const w = window.open("", "_blank"); // open now, before the await, so it isn't popup-blocked
+    try {
+      const r = await GRAuth.apiFetch(`/api/trips/${encodeURIComponent(id)}/print.pdf`);
+      if (!r.ok) throw new Error("Could not build the PDF (" + r.status + ").");
+      const url = URL.createObjectURL(await r.blob());
+      if (w) w.location.href = url;
+      else location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+    } catch (e) {
+      if (w) w.close();
+      alert(e.message);
+    }
   });
 
   // ---- raw JSON editor (stops/legs/meta) ----

@@ -145,6 +145,9 @@ a:hover{text-decoration:underline}
 .ev .badge.stay{background:#7b4b74}
 .ev .badge.act{background:#5a7d4f}
 .ev .badge.trans{background:#2f6f8f}
+.ev .badge.note{background:#8a7a5c}
+.calday .dh .addnote{margin-left:8px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:11px;font-weight:600;padding:1px 8px;border-radius:20px;cursor:pointer}
+.calday .dh .addnote:hover{color:inherit;border-color:#b7a894}
 .ev .txt{font-size:13px;line-height:1.45}
 .ev .txt .sub{color:var(--muted);font-size:12px}
 
@@ -183,7 +186,13 @@ a:hover{text-decoration:underline}
   #map{order:1;height:54%}
   .legend{display:none}
   .tabview{height:auto}
-  .tabview.map-view{height:calc(100vh - 57px - 49px)}
+  .tabview.map-view{height:calc(100vh - 78px - 46px)}
+  /* top bar: brand on one line, buttons in a single swipeable row below — so the page
+     never gets wider than the phone (which pushed modal Save buttons off-screen) */
+  .topbar{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .topbar .brand{width:100%}
+  .topbar .actions{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .topbar .actions .btn{white-space:nowrap;flex-shrink:0}
 }
 
 /* ---------- login screen (mirrors GR-Scheduler) ---------- */
@@ -218,3 +227,4 @@ a:hover{text-decoration:underline}
 .att-hint{font-size:11.5px;color:var(--muted);margin-top:4px}
 .att-msg{font-size:12px;min-height:16px;margin-top:6px;color:var(--muted)}
 .att-msg.err{color:#c0392b}
+.tabhead .btn{white-space:nowrap;flex-shrink:0}

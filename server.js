@@ -109,6 +109,9 @@ app.delete("/api/trips/:id", auth, (req, res) => {
 // ---- attachments (flights, stays, activities, ideas, stops, legs) — see lib/files.js ----
 const files = require("./lib/files")(app, auth, store.DATA_DIR, store);
 
+// ---- printable planner (A4 landscape PDF, week-by-week) — see lib/print.js ----
+require("./lib/print")(app, auth, store);
+
 // ---- app pages (served openly; the SPA gates them with the login screen) --
 app.get("/", (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "index.html"))

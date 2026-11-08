@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "pdfkit": "^0.15.2"
   },
   "license": "UNLICENSED",
   "private": true

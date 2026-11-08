@@ -22,11 +22,13 @@ window.GRCalendar = (function () {
     const accom = trip.accommodation || [];
     const acts = trip.activities || [];
     const trans = trip.transport || [];
+    const notes = trip.dayNotes || [];
 
     const dates = [];
     if (trip.startDate) dates.push(trip.startDate);
     flights.forEach((f) => { if (f.date) dates.push(f.date); if (f.arrDate) dates.push(f.arrDate); });
     acts.forEach((a) => a.date && dates.push(a.date));
+    notes.forEach((n) => n.date && dates.push(n.date));
     trans.forEach((t) => { if (t.pickupDate) dates.push(t.pickupDate); if (t.dropoffDate) dates.push(t.dropoffDate); });
     accom.forEach((a) => {
       if (a.checkIn) dates.push(a.checkIn);
@@ -134,13 +136,20 @@ window.GRCalendar = (function () {
           })
         );
 
+      // daily notes (click to edit)
+      notes
+        .filter((n) => n.date === day)
+        .forEach((n) =>
+          events.push({ cls: "note", badge: "Note", main: esc(n.note || "").replace(/\n/g, "<br>"), sub: "", noteId: n.id })
+        );
+
       const card = document.createElement("div");
       card.className = "calday";
       const body = events.length
         ? events
             .map(
-              (e) =>
-                `<div class="ev ${e.stopId ? "click" : ""}">` +
+              (e, i) =>
+                `<div class="ev ${e.stopId || e.noteId ? "click" : ""}" data-i="${i}">` +
                 `<span class="badge ${e.cls}">${esc(e.badge)}</span>` +
                 `<span class="txt">${e.main}${e.sub ? `<span class="sub"> — ${e.sub}</span>` : ""}</span>` +
                 `</div>`
@@ -150,17 +159,20 @@ window.GRCalendar = (function () {
       card.innerHTML =
         `<div class="dh"><span class="dow">${fmt(day, { weekday: "long" })}</span>` +
         `<span class="dt">${fmt(day, { day: "numeric", month: "long", year: "numeric" })}</span>` +
-        `<span class="idx">Day ${dayIdx}</span></div>` +
+        `<span class="idx">Day ${dayIdx}</span>` +
+        `<button class="addnote" title="Add a note for this day">+ note</button></div>` +
         `<div class="body">${body}</div>`;
 
       // wire clicks
-      const evEls = card.querySelectorAll(".ev.click");
-      let ci = 0;
-      const clickable = events.filter((e) => e.stopId);
-      evEls.forEach((evEl, k) => {
-        const stopId = clickable[k] && clickable[k].stopId;
-        if (stopId) evEl.addEventListener("click", () => opts.onFocusStop && opts.onFocusStop(stopId));
+      card.querySelectorAll(".ev.click").forEach((evEl) => {
+        const e = events[+evEl.dataset.i];
+        if (!e) return;
+        if (e.noteId) evEl.addEventListener("click", () => GRForms.openEditor("dayNotes", trip, e.noteId, opts));
+        else if (e.stopId) evEl.addEventListener("click", () => opts.onFocusStop && opts.onFocusStop(e.stopId));
       });
+      card.querySelector(".addnote").addEventListener("click", () =>
+        GRForms.openEditor("dayNotes", trip, null, Object.assign({}, opts, { prefill: { date: day } }))
+      );
       el.appendChild(card);
     }
   }
