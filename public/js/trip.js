@@ -140,6 +140,16 @@ GRAuth.ready(async function () {
     })
   );
 
+  // ---- KML / KMZ import (Google My Maps export) → stops, outlines, optional legs ----
+  document.getElementById("importKml").addEventListener("click", () =>
+    GRKml.openImport(trip, async (updated) => {
+      trip = updated;
+      await persist(); // throws → error shown in the import dialog
+      mapDirty = true;
+      renderAll();
+    })
+  );
+
   // ---- trip settings + date flow-through ----
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>

@@ -65,7 +65,7 @@
 <!-- ROUTE (stops + legs) -->
 <section id="tab-route" class="tabview">
   <div class="tabpad">
-    <div class="tabhead"><div><h2>Stops</h2><div class="sub">Places on the route, in order. Use ↑ ↓ to reorder; each needs latitude &amp; longitude to appear on the map.</div></div><button class="btn" data-add="stops">+ Add stop</button></div>
+    <div class="tabhead"><div><h2>Stops</h2><div class="sub">Places on the route, in order. Use ↑ ↓ to reorder; each needs latitude &amp; longitude to appear on the map.</div></div><div class="headbtns"><button class="btn ghost" id="importKml" title="Bring in pins and shapes from a Google My Maps (or Google Earth) KML/KMZ export">⬆ Import KML</button><button class="btn" data-add="stops">+ Add stop</button></div></div>
     <div id="stops" class="items"></div>
     <div class="tabhead" style="margin-top:28px"><div><h2>Route legs</h2><div class="sub">Connections drawn between stops — flights as dashed arcs, transfers as solid lines. Where your Flights match a leg, the map follows the flights (airports, connections and label) automatically.</div></div><button class="btn" data-add="legs">+ Add leg</button></div>
     <div id="legs" class="items"></div>
@@ -178,6 +178,7 @@
 <script src="/js/auth.js"></script>
 <script src="/js/route.js"></script>
 <script src="/js/map.js"></script>
+<script src="/js/kml.js"></script>
 <script src="/js/forms.js"></script>
 <script src="/js/calendar.js"></script>
 <script src="/js/gantt.js"></script>
