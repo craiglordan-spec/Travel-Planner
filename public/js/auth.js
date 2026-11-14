@@ -110,6 +110,8 @@
     } catch {}
     TOKEN = "";
     localStorage.removeItem(KEY);
+    // drop the trips/attachments saved on this device for offline viewing
+    if (window.GROffline) await GROffline.clearData();
     // Simplest reliable reset for a signed-out SPA: reload to the login screen.
     location.reload();
   }
@@ -119,7 +121,17 @@
     const headers = Object.assign({}, opts.headers || {}, {
       Authorization: "Bearer " + TOKEN,
     });
-    const res = await fetch(url, Object.assign({}, opts, { headers }));
+    const method = String(opts.method || "GET").toUpperCase();
+    if (method !== "GET" && window.GROffline && !GROffline.isOnline())
+      throw new Error("You're offline — changes can be saved once you're back online.");
+    let res;
+    try {
+      res = await fetch(url, Object.assign({}, opts, { headers }));
+    } catch (e) {
+      if (method !== "GET") throw new Error("No connection — your change wasn't saved. Try again once you're back online.");
+      throw new Error("No connection, and this hasn't been saved on this device yet.");
+    }
+    if (window.GROffline) GROffline.noteResponse(res);
     if (res.status === 401) {
       TOKEN = "";
       localStorage.removeItem(KEY);
@@ -139,6 +151,7 @@
       const r = await fetch("/api/me", {
         headers: { Authorization: "Bearer " + TOKEN },
       });
+      if (window.GROffline) GROffline.noteResponse(r);
       if (r.ok) {
         hideLogin();
         runReady();
@@ -148,8 +161,11 @@
         showLogin(true);
       }
     } catch {
-      // Network hiccup — show login rather than a blank page.
-      showLogin(true);
+      // No connection: if this device has signed in before, open the saved copy
+      // (offline viewing); otherwise there's nothing to show but the login.
+      if (window.GROffline) GROffline.noteResponse(null);
+      hideLogin();
+      runReady();
     }
   }
 

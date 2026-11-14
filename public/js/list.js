@@ -18,6 +18,7 @@ GRAuth.ready(async function () {
       return;
     }
     grid.innerHTML = "";
+    GROffline.syncAll(trips); // keep every trip + its attachments on this device for offline viewing
     trips.forEach((t) => {
       const card = document.createElement("div");
       card.className = "card";

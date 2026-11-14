@@ -14,7 +14,9 @@ GRAuth.ready(async function () {
     if (!res.ok) throw new Error("Itinerary not found.");
     const trip = await res.json();
     try { await GRRoute.ensureRoutes(trip, false); } catch (e) {} // in-memory only
-    GRMap.mount(trip, { mode: "present" });
+    const mapApi = GRMap.mount(trip, { mode: "present" });
+    GROffline.syncTrip(trip);
+    GROffline.bindSaveMap(document.getElementById("saveMap"), () => trip, () => mapApi);
   } catch (e) {
     panel.innerHTML = `<div class="msg">${e.message}</div>`;
   }

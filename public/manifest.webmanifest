@@ -1,0 +1,15 @@
+{
+  "name": "Gravel Road Travel Planner",
+  "short_name": "Travel Planner",
+  "description": "Map-driven trip plans — viewable offline once saved on this device.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f2ea",
+  "theme_color": "#c4622d",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

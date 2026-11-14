@@ -4,6 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>GR Travel Planner</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#c4622d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Travel Planner" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
@@ -19,6 +25,7 @@
   <div class="lede">Plan and present map-driven itineraries. Click a trip to open its route.</div>
   <div id="grid" class="grid"><div class="empty">Loading…</div></div>
 </div>
+<script src="/js/offline.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/list.js"></script>
 </body>

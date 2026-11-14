@@ -245,3 +245,10 @@ a:hover{text-decoration:underline}
 .kml-note{font-size:12px;color:#8a7c6b;line-height:1.5;margin-top:12px}
 .kml-err{color:#c0392b;font-size:12.5px;font-weight:600}
 @media(max-width:760px){.tabhead{flex-wrap:wrap;gap:10px}.kml-row{flex-wrap:wrap}.kml-row select{margin-left:24px}}
+
+/* ---------- offline viewing ---------- */
+.gr-offline{position:sticky;top:0;z-index:1500;background:#3b3128;color:#fff;font-size:12.5px;font-weight:600;
+  padding:8px 14px;text-align:center;line-height:1.4}
+body.is-offline [data-add],body.is-offline .rowbtns,body.is-offline .addnote,body.is-offline #importKml,
+body.is-offline #settings,body.is-offline #editJson,body.is-offline #printPdf,body.is-offline #new,
+body.is-offline #saveMap,body.is-offline .att-drop{display:none!important}

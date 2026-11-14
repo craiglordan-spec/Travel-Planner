@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Itinerary · Gravel Road</title>
 <link rel="stylesheet" href="/vendor/leaflet.css" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#c4622d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Travel Planner" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 <link rel="stylesheet" href="/css/styles.css" />
 <script src="/vendor/leaflet.js"></script>
 </head>
@@ -20,6 +26,7 @@
     <div id="controls">
       <button class="btn" id="play">▶  Play route</button>
       <button class="btn ghost" id="fit">Fit all</button>
+      <button class="btn ghost" id="saveMap" title="Download the map background for this trip's area so it shows with no signal">📥 Save map offline</button>
     </div>
     <div id="list"></div>
   </aside>
@@ -39,6 +46,7 @@
   </div>
 </div>
 
+<script src="/js/offline.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/route.js"></script>
 <script src="/js/map.js"></script>

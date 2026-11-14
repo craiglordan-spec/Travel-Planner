@@ -53,8 +53,13 @@ GRAuth.ready(async function () {
     GRForms.renderList("legs", trip, legsOpts);
   }
   renderAll();
+  // offline viewing: keep this trip's attachments on the device; "Save map offline" button
+  GROffline.syncTrip(trip);
+  GROffline.bindSaveMap(document.getElementById("saveMap"), () => trip, () => mapApi);
+
   // background: look up any places the airport table and stops couldn't place, then save
-  (async () => {
+  // (skipped offline: lookups need the internet and the trip can't be saved anyway)
+  if (GROffline.isOnline()) (async () => {
     let n = 0;
     try { n = await GRRoute.ensureRoutes(trip, true); } catch (e) {}
     if (routesChanged || n) saveAndRemount(trip);

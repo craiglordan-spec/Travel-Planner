@@ -73,6 +73,18 @@ require("./backup-export")(app, store.DATA_DIR, "Travel-Planner");
 app.use("/css", express.static(path.join(__dirname, "public", "css")));
 app.use("/js", express.static(path.join(__dirname, "public", "js")));
 app.use("/vendor", express.static(path.join(__dirname, "public", "vendor")));
+app.use("/icons", express.static(path.join(__dirname, "public", "icons")));
+// offline viewing: the service worker must be served from the root (scope "/") and
+// never cached by the browser, so a deploy's new worker is picked up straight away
+app.get("/sw.js", (_req, res) => {
+  res.set("Cache-Control", "no-cache");
+  res.set("Service-Worker-Allowed", "/");
+  res.sendFile(path.join(__dirname, "public", "sw.js"));
+});
+app.get("/manifest.webmanifest", (_req, res) => {
+  res.type("application/manifest+json");
+  res.sendFile(path.join(__dirname, "public", "manifest.webmanifest"));
+});
 
 // ---- JSON API (all token-protected) ------------------------------------
 app.get("/api/trips", auth, (_req, res) => res.json(store.listTrips()));
